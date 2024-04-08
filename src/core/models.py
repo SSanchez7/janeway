@@ -429,9 +429,15 @@ class Account(AbstractBaseUser, PermissionsMixin):
 
     def is_editor(self, request, journal=None):
         if not journal:
-            return self.check_role(request.journal, 'editor')
+            editor = self.check_role(request.journal, 'editor')
+            super_editor = self.check_role(request.journal, 'senior-editor')
         else:
-            return self.check_role(journal, 'editor')
+            editor = self.check_role(journal, 'editor')
+            super_editor = self.check_role(journal, 'senior-editor')
+        return editor or super_editor
+        
+    def is_senior_editor(self, request):
+        return self.check_role(request.journal, 'senior-editor')
 
     def is_section_editor(self, request):
         return self.check_role(request.journal, 'section-editor')
@@ -439,8 +445,9 @@ class Account(AbstractBaseUser, PermissionsMixin):
     def has_an_editor_role(self, request):
         editor = self.is_editor(request)
         section_editor = self.is_section_editor(request)
+        super_editor = self.is_senior_editor(request)
 
-        if editor or section_editor:
+        if editor or section_editor or super_editor:
             return True
 
         return False

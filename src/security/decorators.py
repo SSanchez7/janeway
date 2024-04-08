@@ -103,7 +103,7 @@ def editor_is_not_author(func):
 
 
 def senior_editor_user_required(func):
-    """ This decorator checks that a user is an editor, Note that this decorator does NOT check for conflict of interest
+    """ This decorator checks that a user is a senior editor, Note that this decorator does NOT check for conflict of interest
     problems. Use the article_editor_user_required decorator (not yet written) to do a check against an article.
 
     :param func: the function to callback from the decorator
@@ -113,7 +113,7 @@ def senior_editor_user_required(func):
     @base_check_required
     def wrapper(request, *args, **kwargs):
 
-        if request.user.is_editor(request) or request.user.is_staff:
+        if request.user.is_senior_editor(request) or request.user.is_staff:
             return func(request, *args, **kwargs)
 
         else:
@@ -341,6 +341,24 @@ def reviewer_user_required(func):
     def wrapper(request, *args, **kwargs):
 
         if request.user.is_reviewer(request) or request.user.is_staff:
+            return func(request, *args, **kwargs)
+        else:
+            deny_access(request)
+
+    return wrapper
+
+def editor_user_required(func):
+    """ This decorator checks that a user is a editor, Note that this decorator does NOT check for conflict of
+    interest problems.
+
+    :param func: the function to callback from the decorator
+    :return: either the function call or raises an Http404
+    """
+
+    @base_check_required
+    def wrapper(request, *args, **kwargs):
+
+        if request.user.is_editor(request) or request.user.is_staff:
             return func(request, *args, **kwargs)
         else:
             deny_access(request)

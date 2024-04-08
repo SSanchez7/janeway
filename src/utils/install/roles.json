@@ -61,5 +61,12 @@
         "name": "Section Editor",
         "slug": "section-editor"
     }
+},
+{
+    "model": "core.role",
+    "fields": {
+        "name": "Senior Editor",
+        "slug": "senior-editor"
+    }
 }
 ]

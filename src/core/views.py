@@ -611,6 +611,7 @@ def dashboard(request):
         'prepub_articles_count': submission_models.Article.objects.filter(
             Q(stage=submission_models.STAGE_READY_FOR_PUBLICATION), journal=request.journal).count(),
         'is_editor': request.user.is_editor(request),
+        'is_senior_editor': request.user.is_senior_editor(request),
         'is_author': request.user.is_author(request),
         'is_reviewer': request.user.is_reviewer(request),
         'section_editor_articles': section_editor_articles,
