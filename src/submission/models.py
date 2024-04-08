@@ -1313,6 +1313,10 @@ class Article(AbstractLastModifiedModel):
         return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
                 assignment in self.editorassignment_set.all()]
 
+    def senior_editors(self):
+        return [{'senior_editor': assignment.senior_editor, 'senior_editor_type': 'Senior Editor', 'assignment': assignment} for
+                assignment in self.senioreditorassignment_set.all()]
+
     def section_editors(self, emails=False):
         editors = [assignment.editor for assignment in self.editorassignment_set.filter(editor_type='section-editor')]
 

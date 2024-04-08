@@ -21,6 +21,7 @@ from utils import shared
 assignment_choices = (
     ('editor', 'Editor'),
     ('section-editor', 'Section Editor'),
+    ('senior-editor', 'Senior Editor'),
 )
 
 
@@ -91,6 +92,22 @@ class EditorAssignment(models.Model):
 
     class Meta:
         unique_together = ('article', 'editor')
+
+
+class SeniorEditorAssignment(models.Model):
+    article = models.ForeignKey(
+        'submission.Article',
+        on_delete=models.CASCADE,
+    )
+    senior_editor = models.ForeignKey(
+        'core.Account',
+        on_delete=models.CASCADE,
+    )
+    assigned = models.DateTimeField(default=timezone.now)
+    notified = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('article', 'senior_editor')
 
 
 class ReviewRound(models.Model):
