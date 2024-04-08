@@ -136,18 +136,24 @@ def unassigned_article(request, article_id):
 
     current_editors = [assignment.editor.pk for assignment in
                        models.EditorAssignment.objects.filter(article=article)]
+    current_senior_editors = [assignment.senior_editor.pk for assignment in
+                       models.SeniorEditorAssignment.objects.filter(article=article)]
     editors = core_models.AccountRole.objects.filter(
-        role__slug='editor',
+        Q(role__slug='editor') | Q(role__slug='senior-editor'),
         journal=request.journal).exclude(user__id__in=current_editors)
+    senior_editors = core_models.AccountRole.objects.filter(
+        role__slug='senior-editor',
+        journal=request.journal).exclude(user__id__in=current_senior_editors)
     section_editors = core_models.AccountRole.objects.filter(
         role__slug='section-editor',
-        journal=request.journal
-    ).exclude(user__id__in=current_editors)
+        journal=request.journal).exclude(user__id__in=current_editors)
+
 
     template = 'review/unassigned_article.html'
     context = {
         'article': article,
         'editors': editors,
+        'senior_editors': senior_editors,
         'section_editors': section_editors,
     }
 
@@ -260,6 +266,33 @@ def assign_editor(request, article_id, editor_id, assignment_type, should_redire
     if should_redirect:
         return redirect(reverse('review_unassigned_article', kwargs={'article_id': article_id}))
 
+@senior_editor_user_required
+def assign_senior_editor(request, article_id, senior_editor_id, should_redirect=True):
+    """
+    Allows a Senior Editor to assign another senior editor to an article.
+    :param request: HttpRequest object
+    :param article_id: Article PK
+    :param editor_id: Account PK
+    :param assignment_type: string, 'section-editor' or 'editor'
+    :param should_redirect: if true, we redirect the user to the notification page
+    :return: HttpResponse or HttpRedirect
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+    senior_editor = get_object_or_404(core_models.Account, pk=senior_editor_id)
+
+    if not senior_editor.is_senior_editor(request):
+        messages.add_message(request, messages.WARNING, 'User is not a Senior Editor')
+        return redirect(reverse('review_unassigned_article', kwargs={'article_id': article.pk}))
+
+    _, created = logic.assign_senior_editor(article, senior_editor, request)
+    messages.add_message(request, messages.SUCCESS, '{0} added as a Senior Editor'.format(senior_editor.full_name()))
+
+    if not created:
+        messages.add_message(request, messages.WARNING,
+                            '{0} is already a Senior Editor on this article.'.format(senior_editor.full_name()))
+    if should_redirect:
+        return redirect(reverse('review_unassigned_article', kwargs={'article_id': article_id}))
+
 
 @senior_editor_user_required
 def unassign_editor(request, article_id, editor_id):
@@ -320,6 +353,26 @@ def unassign_editor(request, article_id, editor_id):
 
     return render(request, template, context)
 
+@senior_editor_user_required
+def unassign_senior_editor(request, article_id, senior_editor_id):
+    """Unassigns a Senior Editor from an article"""
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+    senior_editor = get_object_or_404(core_models.Account, pk=senior_editor_id)
+    assignment = get_object_or_404(
+        models.SeniorEditorAssignment, article=article, senior_editor=senior_editor
+    )
+    assignment.delete()
+    util_models.LogEntry.add_entry(
+        types='EditorialAction',
+        description='Senior Editor {0} unassigned from article {1}'
+            ''.format(senior_editor.full_name(), article.id),
+        level='Info',
+        request=request,
+        target=article,
+    )
+    return redirect(reverse(
+        'review_unassigned_article', kwargs={'article_id': article_id}
+    ))
 
 @senior_editor_user_required
 def assignment_notification(request, article_id, editor_id):
@@ -814,6 +867,45 @@ def review_requests(request):
     completed_requests = models.ReviewAssignment.objects.filter(
         Q(is_complete=True) &
         Q(reviewer=request.user),
+        article__journal=request.journal
+    ).select_related('article')
+
+    template = 'review/review_requests.html'
+    context = {
+        'new_requests': new_requests,
+        'active_requests': active_requests,
+        'completed_requests': completed_requests,
+    }
+
+    return render(request, template, context)
+
+
+@editor_user_required
+def editor_review_requests(request):
+    """
+    A list of requests for the current user
+    :param request: the request object
+    :return: a context for a Django template
+    """
+    new_requests = models.ReviewAssignment.objects.filter(
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+        Q(date_accepted__isnull=True),
+        article__journal=request.journal
+    ).select_related('article')
+
+    active_requests = models.ReviewAssignment.objects.filter(
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage=submission_models.STAGE_UNDER_REVIEW),
+        Q(date_accepted__isnull=False),
+        article__journal=request.journal
+    ).select_related('article')
+
+    completed_requests = models.ReviewAssignment.objects.filter(
+        Q(is_complete=True) &
+        Q(editor=request.user),
         article__journal=request.journal
     ).select_related('article')
 

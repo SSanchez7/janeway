@@ -784,6 +784,18 @@ def assign_editor(
     return assignment, created
 
 
+def assign_senior_editor(
+        article,
+        senior_editor,
+        request=None,
+):
+    assignment, created = models.SeniorEditorAssignment.objects.get_or_create(
+        article=article,
+        senior_editor=senior_editor,
+    )
+    return assignment, created
+
+
 def process_reviewer_csv(path, request, article, form):
     """
     Iterates through a CSV c
