@@ -4,12 +4,11 @@
             <p class="submission">{{ article.pk }} - {{ article.title|truncatechars_html:200|safe }} ({{ article.correspondence_author.last_name }})<br/>
                 <small>
                     Authors: {{ article.author_list }}<br/>
+                    {% for senior_editor in article.senior_editors %}{% if forloop.first %}Senior Editors: {% endif %}{{ senior_editor.senior_editor.full_name }}
+                        {% if not forloop.last %}, {% else %} <br/>{% endif %}{% endfor %}
                     {% for editor in article.editors %}{% if forloop.first %}Editors: {% endif %}{{ editor.editor.full_name }} (
                         {% if editor.editor_type == 'section-editor' %}SE{% else %}E
                         {% endif %}){% if not forloop.last %}, {% endif %}{% endfor %}
-                        <a href="{{ article.current_workflow_element_url }}">
-                            View Article <i class="fa fa-arrow-circle-o-right"></i>
-                        </a>
                 </small>
             </p>
         </div>
@@ -19,7 +18,10 @@
                     Section: {{ article.section.name }}
                     <br/>
                     Stage: {{ article.get_stage_display }}
-
+                    <br/>
+                    <a href="{{ article.current_workflow_element_url }}">
+                        View Article <i class="fa fa-arrow-circle-o-right"></i>
+                    </a>
                 </p>
             </small>
         </div>
