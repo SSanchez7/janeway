@@ -78,6 +78,7 @@ def review_visibilty():
 
 
 class EditorAssignment(models.Model):
+    # FKs
     article = models.ForeignKey(
         'submission.Article',
         on_delete=models.CASCADE,
@@ -86,9 +87,42 @@ class EditorAssignment(models.Model):
         'core.Account',
         on_delete=models.CASCADE,
     )
+    senior_editor = models.ForeignKey(
+        'core.Account',
+        related_name='senior_editor',
+        help_text='Senior Editor requesting the Assignment',
+        null=True,
+        on_delete=models.SET_NULL,
+    )
+
+    # Info
     editor_type = models.CharField(max_length=20, choices=assignment_choices)
+
+    decision = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        choices=review_decision(),
+        verbose_name='Recommendation',
+    )
+
+    # Dates
+    date_requested = models.DateTimeField(auto_now_add=True, null=True)
+    date_due = models.DateField(null=True)
+    date_accepted = models.DateTimeField(blank=True, null=True)
+    date_declined = models.DateTimeField(blank=True, null=True)
+    date_complete = models.DateTimeField(blank=True, null=True)
+    date_reminded = models.DateField(blank=True, null=True)
+
+    is_complete = models.BooleanField(default=False)
+    for_author_consumption = models.BooleanField(default=False)
     assigned = models.DateTimeField(default=timezone.now)
     notified = models.BooleanField(default=False)
+
+    comments_for_editor = models.TextField(blank=True, null=True,
+                                           help_text="If you have any comments for the Senior Editor you can add them here; \
+                                           these will not be shared with the Author.",
+                                           verbose_name="Comments for the Senior Editor")
 
     class Meta:
         unique_together = ('article', 'editor')
