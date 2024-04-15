@@ -50,6 +50,32 @@ def send_reviewer_withdrawl_notice(**kwargs):
     notify_helpers.send_slack(request, description, ['slack_editors'])
 
 
+def send_senior_editor_unassigned_notice(request, email_data, assignment, skip=False):
+    description = "{a.senior_editor} unassigned from {a.article} by {r.user}".format(
+            a=assignment,
+            r=request,
+    )
+    article = assignment.article
+
+    if not skip:
+
+        log_dict = {
+                'level': 'Info', 'action_text': description,
+                'types': 'Senior Editor Unassigned',
+                'target': article,
+        }
+
+        core_email.send_email(
+            request.user,
+            email_data,
+            request,
+            article=article,
+            log_dict=log_dict,
+        )
+
+    notify_helpers.send_slack(request, description, ['slack_editors'])
+
+
 def send_editor_unassigned_notice(request, email_data, assignment, skip=False):
     description = "{a.editor} unassigned from {a.article} by {r.user}".format(
             a=assignment,
@@ -139,6 +165,36 @@ def send_editor_assigned_acknowledgements(**kwargs):
     kwargs['acknowledgement'] = True
 
     send_editor_assigned_acknowledgements_mandatory(**kwargs)
+
+
+def send_senior_editor_manually_assigned(**kwargs):
+    """
+    Event handler that sends notifications on manual senior editor assignemnt
+    :param kwargs: a list of kwargs that includes senior_editor_assignment,
+        email_data, skip (boolean) and request
+    :return: None
+    """
+    email_data = kwargs["email_data"]
+    assignment = kwargs['senior_editor_assignment']
+    article = assignment.article
+    request = kwargs['request']
+    skip = kwargs.get("skip", True)
+
+    # send to assigned editor
+    if not skip:
+        core_email.send_email(
+            assignment.senior_editor,
+            email_data,
+            request,
+            article=article,
+        )
+
+    description = '{0} was assigned as the editor for "{1}"'.format(
+        assignment.senior_editor.full_name(),
+        article.title,
+    )
+
+    notify_helpers.send_slack(request, description, ['slack_editors'])
 
 
 def send_editor_manually_assigned(**kwargs):

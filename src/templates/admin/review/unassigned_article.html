@@ -15,6 +15,7 @@
 
 {% block body %}
     {% user_has_role request 'senior-editor' as is_senior_editor %}
+    {% user_has_role request 'editor' as is_editor %}
     <div class="large-7 columns">
         <div class="box">
             <div class="title-area">
@@ -204,7 +205,6 @@
     </div>
 
     <div class="large-5 columns">
-        {% if is_senior_editor %}
         <div class="box">
             <div class="title-area">
                 <h2>Editors</h2>
@@ -222,7 +222,10 @@
                             <td>{{ assignment.senior_editor.full_name }}</td>
                             <td>{{ assignment.senior_editor.email }}</td>
                             <td>{{ assignment.senior_editor_type|capfirst }}</td>
-                            <td><a href="{% url 'review_unassign_senior_editor' article.id assignment.senior_editor.id %}">Remove</a>
+                            <td>
+                                {% if is_senior_editor %}
+                                <a href="{% url 'review_unassign_senior_editor' article.id assignment.senior_editor.id %}">Remove</a>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
@@ -231,11 +234,28 @@
                             <td>{{ assignment.editor.full_name }}</td>
                             <td>{{ assignment.editor.email }}</td>
                             <td>{{ assignment.editor_type|capfirst }}</td>
-                            <td><a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Remove</a>
+                            <td>
+                                {% if request.user in article.senior_editor_list %}
+                                <a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Remove</a>
+                                {% endif %}
                             </td>
                         </tr>
                     {% endfor %}
-                    {% if not article.senior_editors and not article.editors %}
+                    {% if is_senior_editor %}
+                    {% for assignment in article.requested_editors %}
+                        <tr style="color: #b9b9b9;">
+                            <td>{{ assignment.editor.full_name }}</td>
+                            <td>{{ assignment.editor.email }}</td>
+                            <td>{{ assignment.editor_type|capfirst }}</td>
+                            <td>
+                                {% if request.user in article.senior_editor_list %}
+                                <a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Cancel</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% endif %}
+                    {% if not article.senior_editors and not article.editors and is_senior_editor and not article.requested_editors %}
                         <tr>
                             <td colspan="4">No matches</td>
                             <td></td>
@@ -246,9 +266,10 @@
                 </table>
             </div>
         </div>
+        {% if is_senior_editor %}
         <div class="box">
             <div class="title-area">
-                <h2>Assign Senior Editor</h2>
+                <h2>Add Senior Editor</h2>
             </div>
             <div class="content">
                 <table class="scroll small" id="senior-editors">
@@ -257,7 +278,6 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Type</th>
-                        <th></th>
                         <th></th>
                     </tr>
                     </thead>
@@ -268,14 +288,13 @@
                             <td>{{ account_role.user.email }}</td>
                             <td>Senior Editor</td>
                             <td>
-                                <a href="{% url 'review_assign_senior_editor' article.pk account_role.user.id %}?return={% url 'review_unassigned_article' article.pk %}">Add</a>
-                            </td>
-                            <td>
-                                <a href="{% url 'review_assign_senior_editor' article.pk account_role.user.id %}?return={% url 'review_unassigned_article' article.pk %}">Invite</a>
+                                <a href="{% url 'review_assign_senior_editor' article.pk account_role.user.id %}?return={% url 'review_unassigned_article' article.pk %}">
+                                    Add{% if account_role.user == request.user %} Self{% endif %}
+                                </a>
                             </td>
                         </tr>
                     {% endfor %}
-                    {% if not section_editors and not editors %}
+                    {% if not senior_editors %}
                         <tr>
                             <td colspan="4">No matches</td>
                             <td></td>
@@ -287,6 +306,8 @@
                 </table>
             </div>
         </div>
+        {% endif %}
+        {% if request.user in article.senior_editor_list %}
         <div class="box">
             <div class="title-area">
                 <h2>Add Editors</h2>
@@ -353,19 +374,27 @@
                             {% trans 'This paper has not had an automatic plagiarism check. If you wish to do so you can run a' %} <a href="{% url 'review_unassigned_article' article.pk %}#files-block">{% trans 'Similarity Check via iThenticate' %}</a> .</small></p>
                         </div>
                     {% endif %}
-                    {% if article.editors and article.senior_editors %}
+                    {% if request.user in article.senior_editor_list %}
                         <ul class="menu vertical actions">
+                            {% if article.editors and is_senior_editor or is_editor %}
                             <li>
                                 <a href="{% url 'review_move_to_review' article.pk %}?return={% url 'review_in_review' article.pk %}"><i
                                         class="fa fa-check action-icon">&nbsp;</i>Move to Review</a></li>
+                            {% else %}
+                            <div class="bs-callout bs-callout-info">
+                                <small>Before you can begin a review on an article, you must assign an Editor.</small>
+                            </div>
+                            {% endif %}
+                            {% if article.senior_editors and is_senior_editor %}
                             <li><a href="{% url 'review_decision' article.id 'accept' %}"><i
                                     class="fa fa-check-circle action-icon">&nbsp;</i>Accept Article</a></li>
                             <li><a href="{% url 'review_decision' article.id 'decline' %}"><i
                                     class="fa fa-minus-circle action-icon">&nbsp;</i>Decline Article</a></li>
+                            {% endif %}
                         </ul>
                     {% else %}
                         <div class="bs-callout bs-callout-info">
-                            <small>Before you can perform actions on an article you must assign an Editor.</small>
+                            <small>Before you can perform actions on an article you must be assigned as a Senior Editor.</small>
                         </div>
                     {% endif %}
                 {% else %}

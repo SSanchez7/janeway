@@ -230,6 +230,25 @@
             "name": "email"
         },
         "setting": {
+            "description": "Email sent to senior editors when they are assigned to a submission.",
+            "is_translatable": true,
+            "name": "senior_editor_assignment",
+            "pretty_name": "Senior Editor Assignment",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "<p>Dear {{ senior_editor.full_name }}, </p><p>You have been assigned as an senior editor to \"{{ article.safe_title }}\" in the journal {{ request.journal.name }}.</p><p>If you are unable to be the senior editor for this article, please reply to this email.</p><p>You can view this article's data on the journal site: {{ review_in_review_url }} </p><p>Regards,</p><p>{{ request.user.signature|safe }}</p>"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
             "description": "Email sent to authors when they have submitted an article.",
             "is_translatable": true,
             "name": "submission_acknowledgement",
@@ -512,6 +531,25 @@
     },
     {
         "group": {
+            "name": "email"
+        },
+        "setting": {
+            "description": "Email sent to senior editors when they are unassigned from an article",
+            "is_translatable": true,
+            "name": "unassign_senior_editor",
+            "pretty_name": "Unassign Senior Editor",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "<p>Dear {{ assignment.senior_editor.full_name }},</p><p>We are writing to let you know that you have been unassigned from the article \"{{ article.safe_title }}\" in {{ article.journal.name }}.</p><p>Regards,</p>{{ request.user.signature|safe }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
             "name": "email_subject"
         },
         "setting": {
@@ -523,6 +561,25 @@
         },
         "value": {
             "default": "Unassigned as Editor"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email_subject"
+        },
+        "setting": {
+            "description": "Subject for Unassign Senior Editor Email",
+            "is_translatable": true,
+            "name": "subject_unassign_senior_editor",
+            "pretty_name": "Subject Unassign Senior Editor",
+            "type": "text"
+        },
+        "value": {
+            "default": "Unassigned as Senior Editor"
         },
         "editable_by": [
             "editor",
@@ -2705,6 +2762,25 @@
             "is_translatable": true,
             "description": "Subject for Email sent to editors when they are assigned to a submission.",
             "name": "subject_editor_assignment"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
+            "default": "Article Assignment"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Senior Editor Assignment",
+            "is_translatable": true,
+            "description": "Subject for Email sent to senior editors when they are assigned to a submission.",
+            "name": "subject_senior_editor_assignment"
         },
         "group": {
             "name": "email_subject"

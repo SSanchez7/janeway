@@ -157,6 +157,23 @@ def get_assignment_context(request, article, editor, assignment):
     return email_context
 
 
+def get_senior_assignment_context(request, article, senior_editor, assignment):
+    review_in_review_url = request.journal.site_url(
+        reverse(
+            'review_in_review',
+            kwargs={'article_id': article.pk}
+        )
+    )
+    email_context = {
+        'article': article,
+        'senior_editor': senior_editor,
+        'assignment': assignment,
+        'review_in_review_url': review_in_review_url,
+    }
+
+    return email_context
+
+
 
 def get_review_url(request, review_assignment):
     review_url = request.journal.site_url(path=reverse(
@@ -255,6 +272,16 @@ def get_unassignment_context(request, assignment):
         'article': assignment.article,
         'assignment': assignment,
         'editor': request.user,
+    }
+
+    return email_context
+
+
+def get_senior_unassignment_context(request, assignment):
+    email_context = {
+        'article': assignment.article,
+        'assignment': assignment,
+        'senior_editor': request.user,
     }
 
     return email_context
@@ -739,6 +766,7 @@ def assign_editor(
     assignment, created = models.EditorAssignment.objects.get_or_create(
         article=article,
         editor=editor,
+        senior_editor=request.user,
         editor_type=assignment_type,
     )
     if request and created and automate_email:
@@ -793,6 +821,7 @@ def assign_senior_editor(
         article=article,
         senior_editor=senior_editor,
     )
+    # TODO: Add Automatic Workflow (automate_email)
     return assignment, created
 
 

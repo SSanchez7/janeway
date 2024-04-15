@@ -272,8 +272,7 @@ def assign_senior_editor(request, article_id, senior_editor_id, should_redirect=
     Allows a Senior Editor to assign another senior editor to an article.
     :param request: HttpRequest object
     :param article_id: Article PK
-    :param editor_id: Account PK
-    :param assignment_type: string, 'section-editor' or 'editor'
+    :param senior_editor_id: Account PK
     :param should_redirect: if true, we redirect the user to the notification page
     :return: HttpResponse or HttpRedirect
     """
@@ -286,7 +285,10 @@ def assign_senior_editor(request, article_id, senior_editor_id, should_redirect=
 
     _, created = logic.assign_senior_editor(article, senior_editor, request)
     messages.add_message(request, messages.SUCCESS, '{0} added as a Senior Editor'.format(senior_editor.full_name()))
-
+    if created and should_redirect and senior_editor != request.user:
+        return redirect('{0}?return={1}'.format(
+            reverse('review_senior_assignment_notification', kwargs={'article_id': article_id, 'senior_editor_id': senior_editor.pk}),
+            request.GET.get('return')))
     if not created:
         messages.add_message(request, messages.WARNING,
                             '{0} is already a Senior Editor on this article.'.format(senior_editor.full_name()))
@@ -361,18 +363,72 @@ def unassign_senior_editor(request, article_id, senior_editor_id):
     assignment = get_object_or_404(
         models.SeniorEditorAssignment, article=article, senior_editor=senior_editor
     )
-    assignment.delete()
-    util_models.LogEntry.add_entry(
-        types='EditorialAction',
-        description='Senior Editor {0} unassigned from article {1}'
-            ''.format(senior_editor.full_name(), article.id),
-        level='Info',
-        request=request,
-        target=article,
+    skip = request.POST.get("skip")
+    email_context = logic.get_senior_unassignment_context(request, assignment)
+    form = core_forms.SettingEmailForm(
+            setting_name="unassign_senior_editor",
+            email_context=email_context,
+            request=request,
     )
-    return redirect(reverse(
-        'review_unassigned_article', kwargs={'article_id': article_id}
-    ))
+    if request.user == senior_editor:
+        assignment.delete()
+
+        util_models.LogEntry.add_entry(
+            types='EditorialAction',
+            description='Senior Editor {0} unassigned from article {1}'
+                ''.format(senior_editor.full_name(), article.id),
+            level='Info',
+            request=request,
+            target=article,
+        )
+
+        return redirect(reverse(
+            'review_unassigned_article', kwargs={'article_id': article_id}
+        ))
+
+    if request.method == "POST":
+        form = core_forms.SettingEmailForm(
+                request.POST, request.FILES,
+                setting_name="unassign_senior_editor",
+                email_context=email_context,
+                request=request,
+        )
+
+        if form.is_valid() or skip:
+            kwargs = {
+                'email_data': form.as_dataclass(),
+                'assignment': assignment,
+                'request': request,
+                'skip': skip,
+            }
+
+            event_logic.Events.raise_event(
+                    event_logic.Events.ON_ARTICLE_SENIOR_UNASSIGNED, **kwargs)
+
+            assignment.delete()
+
+            util_models.LogEntry.add_entry(
+                types='EditorialAction',
+                description='Senior Editor {0} unassigned from article {1}'
+                    ''.format(senior_editor.full_name(), article.id),
+                level='Info',
+                request=request,
+                target=article,
+            )
+
+            return redirect(reverse(
+                'review_unassigned_article', kwargs={'article_id': article_id}
+            ))
+
+    template = 'review/unassign_senior_editor.html'
+    context = {
+        'article': article,
+        'assignment': assignment,
+        'form': form,
+    }
+
+    return render(request, template, context)
+
 
 @senior_editor_user_required
 def assignment_notification(request, article_id, editor_id):
@@ -427,6 +483,59 @@ def assignment_notification(request, article_id, editor_id):
 
     return render(request, template, context)
 
+
+@senior_editor_user_required
+def senior_assignment_notification(request, article_id, senior_editor_id):
+    """
+    A senior editor can sent a notification to an assigned senior editor.
+    :param request: HttpRequest object
+    :param article_id: Article PK
+    :param senior_editor_id: Account PK
+    :return: HttpResponse or HttpRedirect
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+    senior_editor = get_object_or_404(core_models.Account, pk=senior_editor_id)
+    assignment = get_object_or_404(models.SeniorEditorAssignment, article=article, senior_editor=senior_editor, notified=False)
+
+    email_context = logic.get_senior_assignment_context(request, article, senior_editor, assignment)
+    form = core_forms.SettingEmailForm(
+            setting_name="senior_editor_assignment",
+            email_context=email_context,
+            request=request,
+    )
+
+    if request.POST:
+        form = core_forms.SettingEmailForm(
+            request.POST, request.FILES,
+            setting_name="senior_editor_assignment",
+            email_context=email_context,
+            request=request,
+        )
+        if form.is_valid():
+            kwargs = {
+                'senior_editor_assignment': assignment,
+                'request': request,
+                'skip': request.POST.get("skip"),
+                'email_data': form.as_dataclass(),
+            }
+
+            event_logic.Events.raise_event(
+                event_logic.Events.ON_SENIOR_EDITOR_MANUALLY_ASSIGNED, **kwargs)
+
+            if request.GET.get('return', None):
+                return redirect(request.GET.get('return'))
+            else:
+                return redirect(reverse('review_unassigned_article', kwargs={'article_id': article_id}))
+
+    template = 'review/senior_assignment_notification.html'
+    context = {
+        'article': article_id,
+        'senior_editor': senior_editor,
+        'assignment': assignment,
+        'form': form,
+    }
+
+    return render(request, template, context)
 
 @editor_user_required
 def move_to_review(request, article_id, should_redirect=True):

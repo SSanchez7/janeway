@@ -21,12 +21,19 @@ class Events:
     ON_ARTICLE_SUBMITTED = 'on_article_submitted'
 
     # kwargs: editor_assignment, request, email_data, acknowledgement (true), skip (boolean)
+    # raised when an senior editor is manually assigned to an article(or skip the acknowledgement)
+    ON_SENIOR_EDITOR_MANUALLY_ASSIGNED = 'on_senior_editor_manually_assigned'
+
+    # kwargs: editor_assignment, request, email_data, acknowledgement (true), skip (boolean)
     # raised when an editor is manually assigned to an article(or skip the acknowledgement)
     ON_EDITOR_MANUALLY_ASSIGNED = 'on_editor_manually_assigned'
 
     # kwargs: request, editor_assignment, user_message_content (will be blank), acknowledgement (false)
     # raised when an editor is assigned to an article
     ON_ARTICLE_ASSIGNED = 'on_article_assigned'
+    # kwargs: request, editor_assignment, user_message_content, skip (boolean)
+    # raised when an editor is unassigned from an article
+    ON_ARTICLE_SENIOR_UNASSIGNED = 'on_article_senior_unassigned'
     # kwargs: request, editor_assignment, user_message_content, skip (boolean)
     # raised when an editor is unassigned from an article
     ON_ARTICLE_UNASSIGNED = 'on_article_unassigned'
