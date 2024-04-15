@@ -18,20 +18,20 @@
                 <div class="box">
                     <div class="title-area">
                         <h2>Editor</h2>
-                        <a href="{% url 'review_requests' %}" class="button">View Requests</a>
+                        <a href="{% url 'editor_review_requests' %}" class="button">View Requests</a>
                     </div>
                     <div class="content">
                         <div class="summary">
-                            <span class="stat alert">{{ assigned_articles_for_user_review_count }}</span>
-                            <span class="title">Assignment Requests</span>
+                            <span class="stat alert">{{ assigned_articles_for_user_editor_review_count }}</span>
+                            <span class="title">Editor Review Requests</span>
                         </div>
                         <div class="summary">
-                            <span class="stat">{{ assigned_articles_for_user_review_accepted_count }}</span>
-                            <span class="title">Accepted Assigns</span>
+                            <span class="stat">{{ assigned_articles_for_user_editor_review_accepted_count }}</span>
+                            <span class="title">Accepted Editor Reviews</span>
                         </div>
                         <div class="summary">
-                            <span class="stat success">{{ assigned_articles_for_user_review_completed_count }}</span>
-                            <span class="title">Completed Assignment</span>
+                            <span class="stat success">{{ assigned_articles_for_user_editor_review_completed_count }}</span>
+                            <span class="title">Completed Editor Reviews</span>
                         </div>
                     </div>
                 </div>
@@ -206,7 +206,7 @@
                                 <th>Current Stage</th>
                             </tr>
                             </thead>
-                            {% for assignment in section_editor_articles %}
+                            
                                 <tr>
                                     <td>{{ assignment.article.pk }}</td>
                                     <td>
@@ -216,11 +216,11 @@
                                     <td>{{ assignment.article.date_submitted }}</td>
                                     <td>{{ assignment.article.get_stage_display }}</td>
                                 </tr>
-                                {% empty %}
+                               
                                 <tr>
                                     <td colspan="4">No Articles Assigned</td>
                                 </tr>
-                            {% endfor %}
+                    
                         </table>
                     </div>
                 </div>

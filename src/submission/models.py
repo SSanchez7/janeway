@@ -260,6 +260,12 @@ REVIEW_STAGES = {
     STAGE_ACCEPTED,
 }
 
+EDITOR_REVIEW_STAGES = {
+    STAGE_UNASSIGNED,
+    STAGE_ASSIGNED,
+    STAGE_UNDER_REVIEW,
+}
+
 # Stages used to determine if a review assignment is open
 REVIEW_ACCESSIBLE_STAGES = {
     STAGE_ASSIGNED,
@@ -1307,11 +1313,18 @@ class Article(AbstractLastModifiedModel):
         return [assignment.production_manager for assignment in self.productionassignment_set.all()]
 
     def editor_list(self):
-        return [assignment.editor for assignment in self.editorassignment_set.all()]
+        return [assignment.editor for assignment in self.editorassignment_set.exclude(date_accepted__isnull=True, is_complete=False)]
+
+    def senior_editor_list(self):
+        return [assignment.senior_editor for assignment in self.senioreditorassignment_set.all()]
 
     def editors(self):
         return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
-                assignment in self.editorassignment_set.all()]
+                assignment in self.editorassignment_set.exclude(date_accepted__isnull=True, is_complete=False)]
+
+    def requested_editors(self):
+        return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
+                assignment in self.editorassignment_set.exclude(date_accepted__isnull=False, is_complete=False)]
 
     def senior_editors(self):
         return [{'senior_editor': assignment.senior_editor, 'senior_editor_type': 'Senior Editor', 'assignment': assignment} for

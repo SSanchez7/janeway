@@ -93,7 +93,6 @@ urlpatterns = [
         name='review_draft_decision_text'),
 
     re_path(r'^requests/$', views.review_requests, name='review_requests'),
-    re_path(r'^requests/$', views.editor_review_requests, name='editor_review_requests'),
     re_path(r'^requests/(?P<assignment_id>\d+)/accept/$', views.accept_review_request, name='accept_review'),
     re_path(r'^requests/(?P<assignment_id>\d+)/decline/$', views.decline_review_request, name='decline_review'),
     re_path(r'^requests/(?P<assignment_id>\d+)/decline/suggest/$', views.suggest_reviewers, name='suggest_reviewers'),
@@ -106,6 +105,12 @@ urlpatterns = [
         views.upload_review_file,
         name='upload_review_file'),
 
+    re_path(r'^requests/editor/$', views.editor_review_requests, name='editor_review_requests'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/accept/$', views.accept_editor_review_request, name='accept_editor_review'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/decline/$', views.decline_editor_review_request, name='decline_editor_review'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/$',
+        views.do_review,
+        name='do_editor_review'),
 
     re_path(r'^author/(?P<article_id>\d+)/$', views.author_view_reviews, name='review_author_view'),
 

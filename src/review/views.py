@@ -231,7 +231,7 @@ def view_ithenticate_report(request, article_id):
 
 @senior_editor_user_required
 def assign_editor_move_to_review(request, article_id, editor_id, assignment_type):
-    """Allows an editor to assign another editor to an article and moves to review."""
+    """Allows an Senior Editor to assign an editor to an article and moves to review."""
     assign_editor(request, article_id, editor_id, assignment_type, should_redirect=False)
     return move_to_review(request, article_id)
 
@@ -239,7 +239,7 @@ def assign_editor_move_to_review(request, article_id, editor_id, assignment_type
 @senior_editor_user_required
 def assign_editor(request, article_id, editor_id, assignment_type, should_redirect=True):
     """
-    Allows a Senior Editor to assign another editor to an article.
+    Allows a Senior Editor to assign an editor to an article.
     :param request: HttpRequest object
     :param article_id: Article PK
     :param editor_id: Account PK
@@ -748,6 +748,48 @@ def accept_review_request(request, assignment_id):
     return redirect(logic.generate_access_code_url('do_review', assignment, access_code))
 
 
+# @reviewer_user_for_assignment_required
+def accept_editor_review_request(request, assignment_id):
+    """
+    Accept an editor review request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+
+    access_code = logic.get_access_code(request)
+
+    # update the EditorAssignment object
+    if access_code:
+        assignment = models.EditorAssignment.objects.get(Q(pk=assignment_id) &
+                                                         Q(is_complete=False) &
+                                                         Q(access_code=access_code) &
+                                                         Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+                                                         Q(date_accepted__isnull=True))
+    else:
+        assignment = models.EditorAssignment.objects.get(Q(pk=assignment_id) &
+                                                         Q(is_complete=False) &
+                                                         Q(editor=request.user) &
+                                                         Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+                                                         Q(date_accepted__isnull=True))
+
+    assignment.date_accepted = timezone.now()
+    assignment.save()
+
+    kwargs = {'review_assignment': assignment,
+              'request': request,
+              'accepted': True}
+    event_logic.Events.raise_event(event_logic.Events.ON_REVIEWER_ACCEPTED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+    return redirect(
+            reverse(
+                'review_unassigned_article',
+                kwargs={'article_id': request.article.pk},
+            )
+        )
+
+
 @reviewer_user_for_assignment_required
 def decline_review_request(request, assignment_id):
     """
@@ -781,6 +823,52 @@ def decline_review_request(request, assignment_id):
     template = 'review/review_decline.html'
     context = {
         'assigned_articles_for_user_review': assignment,
+        'access_code': access_code if access_code else ''
+    }
+
+    kwargs = {'review_assignment': assignment,
+              'request': request,
+              'accepted': False}
+    event_logic.Events.raise_event(event_logic.Events.ON_REVIEWER_DECLINED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+
+    return render(request, template, context)
+
+
+# @reviewer_user_for_assignment_required
+def decline_editor_review_request(request, assignment_id):
+    """
+    Decline an editor review request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+    access_code = logic.get_access_code(request)
+
+    if access_code:
+        assignment = models.EditorAssignment.objects.get(
+            Q(pk=assignment_id) &
+            Q(is_complete=False) &
+            Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+            Q(access_code=access_code)
+        )
+    else:
+        assignment = models.EditorAssignment.objects.get(
+            Q(pk=assignment_id) &
+            Q(is_complete=False) &
+            Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+            Q(editor=request.user)
+        )
+
+    assignment.date_declined = timezone.now()
+    assignment.date_accepted = None
+    assignment.is_complete = True
+    assignment.save()
+
+    template = 'review/editor_review_decline.html'
+    context = {
+        'assigned_articles_for_user_editor_review': assignment,
         'access_code': access_code if access_code else ''
     }
 
@@ -887,29 +975,29 @@ def editor_review_requests(request):
     :param request: the request object
     :return: a context for a Django template
     """
-    new_requests = models.ReviewAssignment.objects.filter(
+    new_requests = models.EditorAssignment.objects.filter(
         Q(is_complete=False) &
         Q(editor=request.user) &
-        Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
         Q(date_accepted__isnull=True),
         article__journal=request.journal
     ).select_related('article')
 
-    active_requests = models.ReviewAssignment.objects.filter(
+    active_requests = models.EditorAssignment.objects.filter(
         Q(is_complete=False) &
         Q(editor=request.user) &
-        Q(article__stage=submission_models.STAGE_UNDER_REVIEW),
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
         Q(date_accepted__isnull=False),
         article__journal=request.journal
     ).select_related('article')
 
-    completed_requests = models.ReviewAssignment.objects.filter(
+    completed_requests = models.EditorAssignment.objects.filter(
         Q(is_complete=True) &
         Q(editor=request.user),
         article__journal=request.journal
     ).select_related('article')
 
-    template = 'review/review_requests.html'
+    template = 'review/editor_review_requests.html'
     context = {
         'new_requests': new_requests,
         'active_requests': active_requests,
@@ -919,7 +1007,7 @@ def editor_review_requests(request):
     return render(request, template, context)
 
 
-@reviewer_user_for_assignment_required
+# @reviewer_user_for_assignment_required
 def do_review(request, assignment_id):
     """
     Rendering of the review form for user to complete.
