@@ -22,6 +22,7 @@ urlpatterns = [
         views.add_projected_issue,
         name='review_projected_issue',
     ),
+    re_path(r'^article/(?P<article_id>\d+)/editor/add/$', views.add_editor_assignment, name='review_add_editor_assignment'),
     re_path(r'^unassigned/article/(?P<article_id>\d+)/assign/(?P<editor_id>\d+)/type/(?P<assignment_type>[-\w.]+)/$',
         views.assign_editor, name='review_assign_editor'),
     re_path(r'^unassigned/article/(?P<article_id>\d+)/assign/(?P<editor_id>\d+)/type/(?P<assignment_type>[-\w.]+)/'
@@ -44,6 +45,8 @@ urlpatterns = [
         name='review_remove_file'),
 
     re_path(r'^article/(?P<article_id>\d+)/review/add/$', views.add_review_assignment, name='review_add_review_assignment'),
+    re_path(r'^article/(?P<article_id>\d+)/review/editor/(?P<editor_assignment_id>\d+)/notify/$', views.notify_editor,
+        name='review_notify_editor'),
     re_path(r'^article/(?P<article_id>\d+)/review/(?P<review_id>\d+)/notify/$', views.notify_reviewer,
         name='review_notify_reviewer'),
     re_path(r'^article/(?P<article_id>\d+)/review/(?P<review_id>\d+)/view/$', views.view_review,
@@ -101,6 +104,12 @@ urlpatterns = [
         views.upload_review_file,
         name='upload_review_file'),
 
+    re_path(r'^requests/editor/$', views.editor_review_requests, name='editor_review_requests'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/accept/$', views.accept_editor_review_request, name='accept_editor_review'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/decline/$', views.decline_editor_review_request, name='decline_editor_review'),
+    re_path(r'^requests/editor/(?P<assignment_id>\d+)/$',
+        views.do_review,
+        name='do_editor_review'),
 
     re_path(r'^author/(?P<article_id>\d+)/$', views.author_view_reviews, name='review_author_view'),
 

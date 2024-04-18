@@ -1,0 +1,10 @@
+<td><input type="radio" name="editor" value="{{ editor.id }}" {% if editor.id == form.cleaned_data.editor.pk %}checked=True{% endif %}></td>
+<td>{{ editor.full_name }}</td>
+<td>{{ editor.email }}</td>
+<td>{{ editor.editor_type }}</td>
+
+<!-- <td>{{ editor.user.active_reviews_count|default_if_none:0 }}</td> -->
+<!-- <td>{% for interest in editor.interest.all %}{{ interest.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</td> -->
+<!-- <td>{{ editor.user.rating_average|default_if_none:"" }}</td> -->
+<!-- <td>{{ editor.user.reviewer.all.0.date_complete }}</td> -->
+{% if past_editors %}<td>{% if editor in past_editors %}Yes{% else %}No{% endif %}</td>{% endif %}

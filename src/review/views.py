@@ -223,6 +223,109 @@ def view_ithenticate_report(request, article_id):
     return render(request, template, context)
 
 
+@editor_is_not_author
+@editor_user_required
+def add_editor_assignment(request, article_id):
+    """
+    Allow an editor to add a new editor assignment
+    :param request: HttpRequest object
+    :param article_id: Article PK
+    :return: HttpResponse
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+
+    past_editors = []
+    editors = logic.get_editors_candidates(
+        article,
+        user=request.user,
+    )
+
+    form = forms.EditorAssignmentForm(
+        journal=request.journal,
+        article=article,
+        editors=editors
+    )
+
+    new_editor_form = core_forms.QuickUserForm()
+
+    if request.POST:
+
+        if 'assign' in request.POST:
+            # first check whether the user exists
+            new_editor_form = core_forms.QuickUserForm(request.POST)
+
+            try:
+                user = core_models.Account.objects.get(email=new_editor_form.data['email'])
+                user.add_account_role('section-editor', request.journal)
+            except core_models.Account.DoesNotExist:
+                user = None
+
+            if user:
+                return redirect(
+                    reverse(
+                        'review_add_editor_assignment',
+                        kwargs={'article_id': article.pk}
+                    ) + '?' + parse.urlencode({'user': new_editor_form.data['email'], 'id': str(user.pk)},)
+                )
+
+            valid = new_editor_form.is_valid()
+
+            if valid:
+                acc = logic.handle_reviewer_form(request, new_editor_form)
+                return redirect(
+                    reverse(
+                        'review_add_editor_assignment', kwargs={'article_id': article.pk}
+                    ) + '?' + parse.urlencode({'user': new_editor_form.data['email'], 'id': str(acc.pk)}),
+                )
+            else:
+                form.modal = {'id': 'editor'}
+        else:
+            form = forms.EditorAssignmentForm(
+                request.POST,
+                journal=request.journal,
+                article=article,
+                editors=editors,
+            )
+
+            if form.is_valid() and form.is_confirmed():
+                editor_assignment = form.save()
+                article.stage = submission_models.STAGE_ASSIGNED
+
+                article.save()
+
+                # kwargs = {'user_message_content': '',
+                #           'editor_assignment': editor_assignment,
+                #           'request': request,
+                #           'skip': False,
+                #           'acknowledgement': False}
+
+                # event_logic.Events.raise_event(event_logic.Events.ON_EDITOR_ASSIGNMENT_REQUESTED, **kwargs)
+
+                return redirect(
+                    reverse(
+                        'review_notify_editor',
+                        kwargs={'article_id': article_id, 'editor_assignment_id': editor_assignment.id}
+                    )
+                )
+
+    template = 'admin/review/add_editor_assignment.html'
+    context = {
+        'article': article,
+        'form': form,
+        'editors': editors,
+        'new_editor_form': new_editor_form,
+        'past_editors': past_editors,
+    }
+
+    # if request.journal.get_setting('general', 'enable_suggested_reviewers'):
+    #     context['suggested_reviewers'] = logic.get_suggested_reviewers(
+    #         article,
+    #         reviewers,
+    #     )
+
+    return render(request, template, context)
+
+
 @senior_editor_user_required
 def assign_editor_move_to_review(request, article_id, editor_id, assignment_type):
     """Allows an editor to assign another editor to an article and moves to review."""
@@ -695,6 +798,47 @@ def accept_review_request(request, assignment_id):
     return redirect(logic.generate_access_code_url('do_review', assignment, access_code))
 
 
+def accept_editor_review_request(request, assignment_id):
+    """
+    Accept an editor review request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+
+    access_code = logic.get_access_code(request)
+
+    # update the EditorAssignment object
+    if access_code:
+        assignment = models.EditorAssignment.objects.get(Q(pk=assignment_id) &
+                                                         Q(is_complete=False) &
+                                                         Q(access_code=access_code) &
+                                                         Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+                                                         Q(date_accepted__isnull=True))
+    else:
+        assignment = models.EditorAssignment.objects.get(Q(pk=assignment_id) &
+                                                         Q(is_complete=False) &
+                                                         Q(editor=request.user) &
+                                                         Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+                                                         Q(date_accepted__isnull=True))
+
+    assignment.date_accepted = timezone.now()
+    assignment.save()
+
+    kwargs = {'review_assignment': assignment,
+              'request': request,
+              'accepted': True}
+    event_logic.Events.raise_event(event_logic.Events.ON_REVIEWER_ACCEPTED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+    return redirect(
+            reverse(
+                'review_unassigned_article',
+                kwargs={'article_id': request.article.pk},
+            )
+        )
+
+
 @reviewer_user_for_assignment_required
 def decline_review_request(request, assignment_id):
     """
@@ -728,6 +872,52 @@ def decline_review_request(request, assignment_id):
     template = 'review/review_decline.html'
     context = {
         'assigned_articles_for_user_review': assignment,
+        'access_code': access_code if access_code else ''
+    }
+
+    kwargs = {'review_assignment': assignment,
+              'request': request,
+              'accepted': False}
+    event_logic.Events.raise_event(event_logic.Events.ON_REVIEWER_DECLINED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+
+    return render(request, template, context)
+
+
+# @reviewer_user_for_assignment_required
+def decline_editor_review_request(request, assignment_id):
+    """
+    Decline an editor review request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+    access_code = logic.get_access_code(request)
+
+    if access_code:
+        assignment = models.EditorAssignment.objects.get(
+            Q(pk=assignment_id) &
+            Q(is_complete=False) &
+            Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+            Q(access_code=access_code)
+        )
+    else:
+        assignment = models.EditorAssignment.objects.get(
+            Q(pk=assignment_id) &
+            Q(is_complete=False) &
+            Q(article__stage=submission_models.STAGE_UNDER_REVIEW) &
+            Q(editor=request.user)
+        )
+
+    assignment.date_declined = timezone.now()
+    assignment.date_accepted = None
+    assignment.is_complete = True
+    assignment.save()
+
+    template = 'review/editor_review_decline.html'
+    context = {
+        'assigned_articles_for_user_editor_review': assignment,
         'access_code': access_code if access_code else ''
     }
 
@@ -818,6 +1008,45 @@ def review_requests(request):
     ).select_related('article')
 
     template = 'review/review_requests.html'
+    context = {
+        'new_requests': new_requests,
+        'active_requests': active_requests,
+        'completed_requests': completed_requests,
+    }
+
+    return render(request, template, context)
+
+
+@any_editor_user_required
+def editor_review_requests(request):
+    """
+    A list of requests for the current user
+    :param request: the request object
+    :return: a context for a Django template
+    """
+    new_requests = models.EditorAssignment.objects.filter(
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(date_accepted__isnull=True),
+        article__journal=request.journal
+    ).select_related('article')
+
+    active_requests = models.EditorAssignment.objects.filter(
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(date_accepted__isnull=False),
+        article__journal=request.journal
+    ).select_related('article')
+
+    completed_requests = models.EditorAssignment.objects.filter(
+        Q(is_complete=True) &
+        Q(editor=request.user),
+        article__journal=request.journal
+    ).select_related('article')
+
+    template = 'review/editor_review_requests.html'
     context = {
         'new_requests': new_requests,
         'active_requests': active_requests,
@@ -1189,6 +1418,64 @@ def add_review_assignment(request, article_id):
             article,
             reviewers,
         )
+
+    return render(request, template, context)
+
+
+@editor_is_not_author
+@editor_user_required
+def notify_editor(request, article_id, editor_assignment_id):
+    """
+    Allows the editor to send a notification to another assigned editor
+    :param request: HttpRequest object
+    :param article_id: Articke PK
+    :param editor_id: EditorAssignment PK
+    :return: HttpResponse or HttpRedirect
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+    editor_assignment = get_object_or_404(models.EditorAssignment, pk=editor_assignment_id)
+
+    email_context = logic.get_editor_notification_context(
+        request, article, request.user, editor_assignment)
+
+    form = core_forms.SettingEmailForm(
+        setting_name="editor_assignment_request",
+        email_context=email_context,
+        request=request,
+    )
+
+    if request.POST:
+        skip = request.POST.get("skip")
+        form = core_forms.SettingEmailForm(
+            request.POST, request.FILES,
+            setting_name="editor_assignment_request",
+            email_context=email_context,
+            request=request,
+        )
+
+        if form.is_valid() or skip:
+            kwargs = {
+                'email_data': form.as_dataclass(),
+                'editor_assignment': editor_assignment,
+                'request': request,
+                'skip': skip,
+            }
+
+            # event_logic.Events.raise_event(
+            #     event_logic.Events.ON_EDITOR_REQUESTED_NOTIFICATION, **kwargs)
+
+            editor_assignment.date_requested = timezone.now()
+            editor_assignment.save()
+
+        return redirect(reverse('review_in_review', kwargs={'article_id': article_id}))
+
+    template = 'review/notify_editor.html'
+    context = {
+        'article': article,
+        'editor': editor_assignment,
+        'form': form,
+        'assignment': editor_assignment,
+    }
 
     return render(request, template, context)
 

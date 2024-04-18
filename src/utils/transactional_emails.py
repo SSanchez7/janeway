@@ -171,6 +171,36 @@ def send_editor_manually_assigned(**kwargs):
     notify_helpers.send_slack(request, description, ['slack_editors'])
 
 
+def send_editor_assignment_request(**kwargs):
+    """
+    Event handler that sends notifications on requested editor assignemnt
+    :param kwargs: a list of kwargs that includes editor_assignment,
+        email_data, skip (boolean) and request
+    :return: None
+    """
+    email_data = kwargs["email_data"]
+    editor_assignment = kwargs['editor_assignment']
+    article = editor_assignment.article
+    request = kwargs['request']
+    skip = kwargs.get("skip", True)
+
+    # send to assigned editor
+    if not skip:
+        core_email.send_email(
+            editor_assignment.editor,
+            email_data,
+            request,
+            article=article,
+        )
+
+    description = '{0} was assigned as the editor for "{1}"'.format(
+        editor_assignment.editor.full_name(),
+        article.title,
+    )
+
+    notify_helpers.send_slack(request, description, ['slack_editors'])
+
+
 def send_reviewer_requested(**kwargs):
     """
     This function is called via the event handling framework and it notifies that a reviewer has been requested.

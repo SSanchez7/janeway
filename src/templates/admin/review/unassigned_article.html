@@ -208,6 +208,8 @@
         <div class="box">
             <div class="title-area">
                 <h2>Editors</h2>
+                <a href="{% url 'review_add_editor_assignment' article.id %}" class="button">Invite
+                    Editors</a>
             </div>
             <div class="content">
                 <table class="scroll small" id="unassigned">
@@ -225,11 +227,22 @@
                             <td><a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Remove</a>
                             </td>
                         </tr>
-                        {% empty %}
+                    {% endfor %}
+                    {% for assignment in article.requested_editors %}
+                        <tr style="color: #b9b9b9;">
+                            <td>{{ assignment.editor.full_name }}</td>
+                            <td>{{ assignment.editor.email }}</td>
+                            <td>{{ assignment.editor_type|capfirst }}</td>
+                            <td>
+                                <a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Cancel</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    {% if not article.editors and not article.requested_editors %}
                         <tr>
                             <td colspan="4">No users assigned</td>
                         </tr>
-                    {% endfor %}
+                    {% endif %}
                 </table>
             </div>
         </div>

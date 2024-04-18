@@ -260,6 +260,12 @@ REVIEW_STAGES = {
     STAGE_ACCEPTED,
 }
 
+EDITOR_REVIEW_STAGES = {
+    STAGE_UNASSIGNED,
+    STAGE_ASSIGNED,
+    STAGE_UNDER_REVIEW,
+}
+
 # Stages used to determine if a review assignment is open
 REVIEW_ACCESSIBLE_STAGES = {
     STAGE_ASSIGNED,
@@ -1311,7 +1317,11 @@ class Article(AbstractLastModifiedModel):
 
     def editors(self):
         return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
-                assignment in self.editorassignment_set.all()]
+                assignment in self.editorassignment_set.exclude(date_accepted__isnull=True, is_complete=False)]
+
+    def requested_editors(self):
+        return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
+                assignment in self.editorassignment_set.exclude(date_accepted__isnull=False, is_complete=False)]
 
     def section_editors(self, emails=False):
         editors = [assignment.editor for assignment in self.editorassignment_set.filter(editor_type='section-editor')]

@@ -86,6 +86,17 @@ class EditorAssignment(models.Model):
         on_delete=models.CASCADE,
     )
     editor_type = models.CharField(max_length=20, choices=assignment_choices)
+
+    # Dates
+    date_requested = models.DateTimeField(auto_now_add=True, null=True)
+    date_due = models.DateField(null=True)
+    date_accepted = models.DateTimeField(blank=True, null=True)
+    date_declined = models.DateTimeField(blank=True, null=True)
+    date_complete = models.DateTimeField(blank=True, null=True)
+    date_reminded = models.DateField(blank=True, null=True)
+
+    is_complete = models.BooleanField(default=False)
+
     assigned = models.DateTimeField(default=timezone.now)
     notified = models.BooleanField(default=False)
 
