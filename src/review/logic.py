@@ -796,6 +796,9 @@ def assign_editor(
         article=article,
         editor=editor,
         editor_type=assignment_type,
+        is_complete=False,
+        date_accepted = timezone.now()
+
     )
     if request and created and automate_email:
         email_context = get_assignment_context(
