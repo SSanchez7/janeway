@@ -28,6 +28,8 @@ from core.forms.forms import (
     RegistrationForm,
     SectionForm,
     SettingEmailForm,
+    TopicForm,
+    TopicGroupForm,
     UserCreationFormExtended,
     XSLFileForm,
 )
