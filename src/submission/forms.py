@@ -6,6 +6,7 @@ __maintainer__ = "Birkbeck Centre for Technology and Publishing"
 import re
 
 from django import forms
+from django_select2.forms import Select2MultipleWidget
 from django.utils.translation import gettext, gettext_lazy as _
 
 from submission import models
@@ -70,7 +71,7 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                   'language', 'section', 'license', 'primary_issue',
                   'article_number', 'is_remote', 'remote_url', 'peer_reviewed',
                   'first_page', 'last_page', 'page_numbers', 'total_pages',
-                  'competing_interests', 'custom_how_to_cite', 'rights')
+                  'competing_interests', 'custom_how_to_cite', 'rights', 'study_topic')
         widgets = {
             'title': forms.TextInput(attrs={'placeholder': _('Title')}),
             'subtitle': forms.TextInput(attrs={'placeholder': _('Subtitle')}),
@@ -79,6 +80,7 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                     'placeholder': _('Enter your article\'s abstract here')
                 }
             ),
+            'study_topic': Select2MultipleWidget,
         }
 
     def __init__(self, *args, **kwargs):
@@ -105,12 +107,20 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
 
         if 'instance' in kwargs:
             article = kwargs['instance']
+
+            self.fields['study_topic'].initial = article.topics()
+
             section_queryset = models.Section.objects.filter(
                 journal=article.journal,
             )
             license_queryset = models.Licence.objects.filter(
                 journal=article.journal,
             )
+            topics_queryset = core_models.Topics.objects.filter(
+                journal=article.journal,
+            ).order_by('group__pretty_name', 'pretty_name')
+
+            topics_queryset = topics_queryset.exclude()
             if self.FILTER_PUBLIC_FIELDS:
                 section_queryset = section_queryset.filter(
                     public_submissions=self.FILTER_PUBLIC_FIELDS,
@@ -120,10 +130,25 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                 )
             self.fields['section'].queryset = section_queryset
             self.fields['license'].queryset = license_queryset
+            self.fields['study_topic'].queryset = topics_queryset
 
             self.fields['section'].required = True
             self.fields['license'].required = True
+            self.fields['study_topic'].required = False
             self.fields['primary_issue'].queryset = article.issues.all()
+
+            self.fields['study_topic'].help_text = 'Article study area'
+
+            self.fields['study_topic'].choices = [
+                (
+                    group.pretty_name,
+                    [
+                        (topic.id, topic.pretty_name)
+                        for topic in core_models.Topics.objects.filter(group=group).order_by('pretty_name') 
+                    ]
+                )
+                for group in core_models.TopicGroup.objects.all()
+            ]
 
             abstracts_required = article.journal.get_setting(
                 'general',
@@ -223,7 +248,15 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
 
         if commit:
             article.save()
+            selected_topics = self.cleaned_data['study_topic']
+            for topic in selected_topics:
+                if not models.ArticleTopic.objects.filter(article=article, topic=topic).exists():
+                    models.ArticleTopic.objects.create(article=article, topic=topic)
 
+            existing_topics = article.topics()
+            for topic in existing_topics:
+                if topic not in selected_topics:
+                    models.ArticleTopic.objects.filter(article=article, topic=topic).delete()
         return article
 
 
