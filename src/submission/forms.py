@@ -65,13 +65,27 @@ class ArticleStart(forms.ModelForm):
 class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
     FILTER_PUBLIC_FIELDS = False
 
+    primary_study_topic = forms.ModelChoiceField(
+        queryset=core_models.Topics.objects.none(),
+        widget=forms.Select,
+        required=True,
+        label=_('Primary Study Topic')
+    )
+    
+    secondary_study_topic = forms.ModelMultipleChoiceField(
+        queryset=core_models.Topics.objects.none(),
+        widget=Select2MultipleWidget,
+        required=False,
+        label=_('Secondary Study Topic')
+    )
+
     class Meta:
         model = models.Article
         fields = ('title', 'subtitle', 'abstract', 'non_specialist_summary',
                   'language', 'section', 'license', 'primary_issue',
                   'article_number', 'is_remote', 'remote_url', 'peer_reviewed',
                   'first_page', 'last_page', 'page_numbers', 'total_pages',
-                  'competing_interests', 'custom_how_to_cite', 'rights', 'study_topic')
+                  'competing_interests', 'custom_how_to_cite', 'rights')
         widgets = {
             'title': forms.TextInput(attrs={'placeholder': _('Title')}),
             'subtitle': forms.TextInput(attrs={'placeholder': _('Subtitle')}),
@@ -80,7 +94,6 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                     'placeholder': _('Enter your article\'s abstract here')
                 }
             ),
-            'study_topic': Select2MultipleWidget,
         }
 
     def __init__(self, *args, **kwargs):
@@ -108,7 +121,8 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
         if 'instance' in kwargs:
             article = kwargs['instance']
 
-            self.fields['study_topic'].initial = article.topics()
+            self.fields['primary_study_topic'].initial = article.topics('PR').first()
+            self.fields['secondary_study_topic'].initial = article.topics('SE')
 
             section_queryset = models.Section.objects.filter(
                 journal=article.journal,
@@ -120,7 +134,6 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                 journal=article.journal,
             ).order_by('group__pretty_name', 'pretty_name')
 
-            topics_queryset = topics_queryset.exclude()
             if self.FILTER_PUBLIC_FIELDS:
                 section_queryset = section_queryset.filter(
                     public_submissions=self.FILTER_PUBLIC_FIELDS,
@@ -130,16 +143,17 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                 )
             self.fields['section'].queryset = section_queryset
             self.fields['license'].queryset = license_queryset
-            self.fields['study_topic'].queryset = topics_queryset
+            self.fields['primary_study_topic'].queryset = topics_queryset
+            self.fields['secondary_study_topic'].queryset = topics_queryset
 
             self.fields['section'].required = True
             self.fields['license'].required = True
-            self.fields['study_topic'].required = False
             self.fields['primary_issue'].queryset = article.issues.all()
 
-            self.fields['study_topic'].help_text = 'Article study area'
+            self.fields['primary_study_topic'].help_text = 'Main study topic of the article'
+            self.fields['secondary_study_topic'].help_text = 'Anothers study topics related to the article'
 
-            self.fields['study_topic'].choices = [
+            study_topic_choices = [('', '---------')] + [
                 (
                     group.pretty_name,
                     [
@@ -149,6 +163,8 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                 )
                 for group in core_models.TopicGroup.objects.all()
             ]
+            self.fields['primary_study_topic'].choices = study_topic_choices
+            self.fields['secondary_study_topic'].choices = study_topic_choices
 
             abstracts_required = article.journal.get_setting(
                 'general',
@@ -248,15 +264,28 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
 
         if commit:
             article.save()
-            selected_topics = self.cleaned_data['study_topic']
-            for topic in selected_topics:
-                if not models.ArticleTopic.objects.filter(article=article, topic=topic).exists():
-                    models.ArticleTopic.objects.create(article=article, topic=topic)
 
-            existing_topics = article.topics()
-            for topic in existing_topics:
-                if topic not in selected_topics:
-                    models.ArticleTopic.objects.filter(article=article, topic=topic).delete()
+            selected_primary_topic = self.cleaned_data['primary_study_topic']
+            topic_type = models.ArticleTopic.PRIMARY
+            if not models.ArticleTopic.objects.filter(article=article, topic=selected_primary_topic, topic_type=topic_type).exists():
+                models.ArticleTopic.objects.create(article=article, topic=selected_primary_topic, topic_type=topic_type)
+
+            selected_secondary_topics = set(self.cleaned_data['secondary_study_topic'])
+            for topic in selected_secondary_topics:
+                topic_type = models.ArticleTopic.SECONDARY
+                if not models.ArticleTopic.objects.filter(article=article, topic=topic, topic_type=topic_type).exists():
+                    models.ArticleTopic.objects.create(article=article, topic=topic, topic_type=topic_type)
+
+            existing_primary_topics = article.topics('PR')
+            for topic in existing_primary_topics:
+                if topic != selected_primary_topic:
+                    models.ArticleTopic.objects.filter(article=article, topic=topic, topic_type=models.ArticleTopic.PRIMARY).delete()
+
+            existing_secondary_topics = article.topics('SE')
+            for topic in existing_secondary_topics:
+                if topic not in selected_secondary_topics:
+                    models.ArticleTopic.objects.filter(article=article, topic=topic, topic_type=models.ArticleTopic.SECONDARY).delete()
+
         return article
 
 
