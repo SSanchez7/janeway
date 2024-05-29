@@ -18,7 +18,10 @@ from django.db.models import (
     OuterRef,
     Prefetch,
     Subquery,
+    Value,
+    F,
 )
+from django.db.models.functions import Coalesce
 from django.shortcuts import redirect, reverse
 from django.db.models import Q
 from django.utils import timezone
@@ -105,6 +108,24 @@ def get_reviewers(article, candidate_queryset, exclude_pks):
         rating_average=Avg("rating"),
     ).values("rating_average")
 
+    primary_topic_matches = core_models.AccountTopic.objects.filter(
+        account=OuterRef("id"),
+        topic__in=article.study_topic.filter(articletopic__topic_type=submission_models.ArticleTopic.PRIMARY)
+    ).values(
+        "account_id",
+    ).annotate(
+        match_count=Count("account_id"),
+    ).values("match_count")
+
+    secondary_topic_matches = core_models.AccountTopic.objects.filter(
+        account=OuterRef("id"),
+        topic__in=article.study_topic.filter(articletopic__topic_type=submission_models.ArticleTopic.SECONDARY)
+    ).values(
+        "account_id",
+    ).annotate(
+        match_count=Count("account_id"),
+    ).values("match_count")
+
     # TODO swap the below subqueries with filtered annotations on Django 2.0+
     reviewers = candidate_queryset.exclude(
         pk__in=exclude_pks,
@@ -118,7 +139,22 @@ def get_reviewers(article, candidate_queryset, exclude_pks):
         )
     ).annotate(
         rating_average=Subquery(rating_average, output_field=IntegerField()),
-    )
+    ).annotate(
+        primary_topic_matches=Subquery(
+            primary_topic_matches,
+            output_field=IntegerField(),
+        )
+    ).annotate(
+        secondary_topic_matches=Subquery(
+            secondary_topic_matches,
+            output_field=IntegerField(),
+        )
+    ).annotate(
+        primary_topic_matches_weighted=F('primary_topic_matches') * 2,
+        total_topic_matches=Coalesce(F('primary_topic_matches_weighted'), Value(0)) + Coalesce(F('secondary_topic_matches'), Value(0)),
+        active_reviews_count=Coalesce(F('active_reviews_count'), Value(0)),
+    ).order_by('active_reviews_count', '-total_topic_matches')
+
     return reviewers
 
 
