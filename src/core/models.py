@@ -1483,7 +1483,7 @@ class TopicGroup(models.Model):
         return self.pretty_name
 
     def topic_count(self):
-        return self.topics_set.all()
+        return self.topics_set.all().count()
 
 
 class Topics(models.Model):
