@@ -68,18 +68,18 @@
 
                         <tbody>
                         {% for reviewer in past_reviewers %}
-                            <tr>
+                            <tr {% if journal_settings.general.enable_competing_interest_selections and reviewer.has_conflict %}style="color: #b9b9b9;"{% endif %}>
                                 {% include "admin/elements/review/add_reviewer_table_row.html" with reviewer=reviewer past_reviewers=past_reviewers %}
                             </tr>
                         {% endfor %}
                         {% for reviewer in suggested_reviewers %}
-                            <tr class="green">
+                        <tr {% if journal_settings.general.enable_competing_interest_selections and reviewer.has_conflict %}style="color: #b9b9b9;"{% endif %} class="green">
                                 {% include "admin/elements/review/add_reviewer_table_row.html" with reviewer=reviewer past_reviewers=past_reviewers %}
                             </tr>
                         {% endfor %}
                         {% for reviewer in reviewers %}
                             {% if not journal_settings.general.enable_suggested_reviewers or not reviewer in suggested_reviewers %}
-                            <tr>
+                            <tr {% if journal_settings.general.enable_competing_interest_selections and reviewer.has_conflict %}style="color: #b9b9b9;"{% endif %}>
                                 {% include "admin/elements/review/add_reviewer_table_row.html" with reviewer=reviewer past_reviewers=past_reviewers %}
                             </tr>
                             {% endif %}
