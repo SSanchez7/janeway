@@ -17,25 +17,25 @@
     <div class="large-6 columns">
         <div class="box">
             <div class="title-area">
-                <h2>Published Articles</h2>
+                <h2>Accepted Articles</h2>
             </div>
             <div class="content">
                 <table class="small article_list scroll">
                     <thead>
                     <tr>
-                        <td>{{ ID }}</td>
+                        <td>ID</td>
                         <td>Title</td>
-                        <td>Published</td>
+                        <td>Accepted</td>
                         <td>Identifier</td>
                     </tr>
                     </thead>
 
                     <tbody>
-                    {% for article in published_articles %}
+                        {% for article in accepted_articles %}
                         <tr>
                             <td>{{ article.pk }}</td>
                             <td><a href="{% url 'manage_archive_article' article.pk %}">{{ article.safe_title }}</a></td>
-                            <td>{{ article.date_published }}</td>
+                            <td>{{ article.date_accepted }}</td>
                             <td>{{ article.identifier }}</td>
                         </tr>
                     {% endfor %}
@@ -67,6 +67,37 @@
                             <td>{{ article.pk }}</td>
                             <td><a href="{% url 'manage_archive_article' article.pk %}">{{ article.safe_title }}</a></td>
                             <td>{{ article.date_declined|default_if_none:"Archived" }}</td>
+                            <td>{{ article.identifier }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="large-12 columns">
+        <div class="box">
+            <div class="title-area">
+                <h2>Published Articles</h2>
+            </div>
+            <div class="content">
+                <table class="small article_list scroll">
+                    <thead>
+                    <tr>
+                        <td>{{ ID }}</td>
+                        <td>Title</td>
+                        <td>Published</td>
+                        <td>Identifier</td>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+                    {% for article in published_articles %}
+                        <tr>
+                            <td>{{ article.pk }}</td>
+                            <td><a href="{% url 'manage_archive_article' article.pk %}">{{ article.safe_title }}</a></td>
+                            <td>{{ article.date_published }}</td>
                             <td>{{ article.identifier }}</td>
                         </tr>
                     {% endfor %}
