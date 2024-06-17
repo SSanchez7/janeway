@@ -1,5 +1,12 @@
 {% if is_editor %}
-    <div class="large-8 columns" data-equalizer-watch>
+{% with request.journal.workflow.elements.all as workflow_elements %}
+    <div class="
+        {% if workflow_elements|length <= 1 %}large-4
+        {% elif workflow_elements|length <= 3 %}large-6
+        {% elif workflow_elements|length <= 5 %}large-8
+        {% endif %} columns"
+        data-equalizer-watch
+    >
         <div class="box">
             <div class="title-area">
                 <h2>Editor</h2>
@@ -9,29 +16,41 @@
             </div>
 
             <div class="row expanded">
-                <div class="large-4 columns">
+                <div class="
+                    {% if workflow_elements|length <= 1 %}large-12
+                    {% elif workflow_elements|length <= 3 %}large-6
+                    {% elif workflow_elements|length <= 5 %}large-4
+                    {% endif %} columns"
+                >
                     <div class="content">
                         <div class="summary">
                             <span class="stat">{{ unassigned_articles_count }}</span>
                             <span class="title">Unassigned</span>
                             <a href="{% url 'review_unassigned' %}" class="box-link"></a>
                         </div>
-                        {% for element in request.journal.workflow.elements.all %}
+                    {% for element in workflow_elements %}
+                        {% if forloop.counter|divisibleby:2 %}
+                        <div class="
+                            {% if workflow_elements|length <= 1 %}large-12
+                            {% elif workflow_elements|length <= 3 %}large-6
+                            {% elif workflow_elements|length <= 5 %}large-4
+                            {% endif %} columns end"
+                        >
+                            <div class="content">
+                        {% endif %}
                             <div class="summary">
                                 <span class="stat">{{ element.articles.count }}</span>
                                 <span class="title">{{ element|capfirst }}</span>
                                 <a href="{% url element.handshake_url %}" class="box-link"></a>
                             </div>
-                            {% if forloop.counter == 1 or forloop.counter|divisibleby:3 and not forloop.last %}
+                        {% if forloop.first or forloop.counter|divisibleby:3 or forloop.last %}
                                 </div>
+                            </div>
+                        {% endif %}
+                        {% empty %}
                                 </div>
-                                <div class="large-4 columns end">
-                                    <div class="content">
-                                        {% elif forloop.last %}
-                                    </div>
-                                </div>
-                            {% endif %}
-                        {% endfor %}
+                            </div>
+                    {% endfor %}
             </div>
 
             <div class="row expanded">
@@ -42,6 +61,6 @@
                 </div>
             </div>
         </div>
-
-
+    </div>
+{% endwith %}
 {% endif %}
