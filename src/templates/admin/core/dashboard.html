@@ -15,8 +15,7 @@
        {% include "admin/elements/no_stage.html" %}
 
         <div class="row expanded" data-equalizer data-equalize-on="medium">
-            {% include "admin/elements/core/editor_dashboard.html" %}
-        </div>
+        {% include "admin/elements/core/editor_dashboard.html" %}
         {% if is_reviewer %}
             <div class="large-4 columns end" data-equalizer-watch>
                 <div class="box">
@@ -160,6 +159,7 @@
                 </div>
             </div>
         {% endif %}
+        </div>
 
         {% for element in request.journal.workflow_plugin_elements %}
             {% if element.settings.dashboard_template %}
