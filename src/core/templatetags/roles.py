@@ -1,6 +1,7 @@
 from django import template
 
 from core import models
+from utils import setting_handler
 
 register = template.Library()
 
@@ -47,3 +48,11 @@ def role_id(request, role_slug):
         return role.pk
     except models.Role.DoesNotExist:
         return 0
+
+
+@register.simple_tag
+def editor_can_access(request, article):
+    required_senior_editor = setting_handler.get_setting('general', 'required_senior_editor', request.journal).value
+    is_editor = user_has_role(request, 'editor')
+    is_staff = request.user.is_staff
+    return is_staff or (is_editor and request.user in article.editor_list() if required_senior_editor else is_editor)

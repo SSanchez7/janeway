@@ -3,10 +3,13 @@ __author__ = "Martin Paul Eve & Andy Byers"
 __license__ = "AGPL v3"
 __maintainer__ = "Birkbeck Centre for Technology and Publishing"
 
+import re
 import uuid
 import json
 
 from django import forms
+from django.db import transaction
+from django_select2.forms import Select2MultipleWidget
 from django.forms.fields import Field
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -155,6 +158,22 @@ class RegistrationForm(forms.ModelForm, CaptchaForm):
             ).value
             if not send_reader_notifications:
                 self.fields.pop('register_as_reader')
+        
+        enable_competing_interest_selections = self.journal.get_setting(
+            'general',
+            'enable_competing_interest_selections',
+        )
+        if enable_competing_interest_selections:
+            self.fields['competing_interest_domains'] = forms.CharField(
+                label='Domains with Conflict of Interest',
+                required=False,
+                help_text=_('Hit Enter to add a new Domain. e.g., example.com.'),
+                widget=forms.TextInput(attrs={
+                    'id': 'id_domains',
+                    'hidden': True,
+                    'placeholder': _('example.com'),
+                })
+            )
 
     def clean_password_2(self):
         password_1 = self.cleaned_data.get("password_1")
@@ -174,8 +193,29 @@ class RegistrationForm(forms.ModelForm, CaptchaForm):
         user.confirmation_code = uuid.uuid4()
         user.email_sent = timezone.now()
 
+        domain_regex = r'^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$'
+        posted_domains = self.cleaned_data['competing_interest_domains'].split(',')
+        posted_domains = [
+            domain.lower() for domain in posted_domains
+            if re.match(domain_regex, domain.strip())
+        ]
+
         if commit:
             user.save()
+
+            enable_competing_interest_selections = self.journal.get_setting(
+                'general',
+                'enable_competing_interest_selections',
+            )
+            if enable_competing_interest_selections:
+                for domain in posted_domains:
+                    new_domain, c = models.EmailDomainCI.objects.get_or_create(name=domain)
+                    user.competing_interest_domains.add(new_domain)
+
+                for domain in user.competing_interest_domains.all():
+                    if domain.name not in posted_domains:
+                        user.competing_interest_domains.remove(domain)
+
             if self.cleaned_data.get('register_as_reader') and self.journal:
                 user.add_account_role(
                     role_slug="reader",
@@ -190,16 +230,81 @@ class EditAccountForm(forms.ModelForm):
 
     interests = forms.CharField(required=False)
 
+    primary_study_topic = forms.ModelMultipleChoiceField(
+        queryset=models.Topics.objects.none(),
+        widget=Select2MultipleWidget,
+        required=False,
+        label=_('Preferred Study Topics')
+    )
+    
+    secondary_study_topic = forms.ModelMultipleChoiceField(
+        queryset=models.Topics.objects.none(),
+        widget=Select2MultipleWidget,
+        required=False,
+        label=_('Another Study Topics')
+    )
+
     class Meta:
         model = models.Account
         exclude = ('email', 'username', 'activation_code', 'email_sent',
                    'date_confirmed', 'confirmation_code', 'is_active',
                    'is_staff', 'is_admin', 'date_joined', 'password',
-                   'is_superuser', 'enable_digest')
+                   'is_superuser', 'enable_digest', 'competing_interest_domains')
         widgets = {
             'biography': TinyMCE(),
             'signature': TinyMCE(),
+            'study_topic': Select2MultipleWidget,
         }
+
+    def __init__(self, *args, **kwargs):
+        self.journal = kwargs.pop('journal', None)
+        super(EditAccountForm, self).__init__(*args, **kwargs)
+        if self.journal:
+            topics_queryset = models.Topics.objects.filter(
+                journal=self.journal,
+            ).order_by('group__pretty_name', 'pretty_name')
+            
+            self.fields['primary_study_topic'].queryset = topics_queryset
+            self.fields['secondary_study_topic'].queryset = topics_queryset
+
+            enable_competing_interest_selections = self.journal.get_setting(
+                'general',
+                'enable_competing_interest_selections',
+            )
+            if enable_competing_interest_selections:
+                self.fields['competing_interest_domains'] = forms.CharField(
+                    label='Domains with Conflict of Interest',
+                    required=False,
+                    help_text=_('Hit Enter to add a new Domain. e.g., example.com.'),
+                    widget=forms.TextInput(attrs={
+                        'id': 'id_domains',
+                        'hidden': True,
+                        'placeholder': _('example.com'),
+                    })
+                )
+
+            if 'instance' in kwargs:
+                account = kwargs['instance']
+
+                self.fields['primary_study_topic'].initial = account.topics('PR')
+                self.fields['secondary_study_topic'].initial = account.topics('SE')
+
+                if enable_competing_interest_selections:
+                    initial_domains = ','.join(domain.name for domain in account.competing_interest_domains.all())
+                    self.fields['competing_interest_domains'].initial = initial_domains
+
+            study_topic_choices = [
+                (
+                    group.pretty_name,
+                    [
+                        (topic.id, topic.pretty_name)
+                        for topic in models.Topics.objects.filter(group=group).order_by('pretty_name') 
+                    ]
+                )
+                for group in models.TopicGroup.objects.all()
+            ]
+            self.fields['primary_study_topic'].choices = study_topic_choices
+            self.fields['secondary_study_topic'].choices = study_topic_choices
 
     def save(self, commit=True):
         user = super(EditAccountForm, self).save(commit=False)
@@ -213,11 +318,59 @@ class EditAccountForm(forms.ModelForm):
         for interest in user.interest.all():
             if interest.name not in posted_interests:
                 user.interest.remove(interest)
+        
+        enable_competing_interest_selections = self.journal.get_setting(
+            'general',
+            'enable_competing_interest_selections',
+        )
+        if enable_competing_interest_selections:
+            domain_regex = r'^[a-zA-Z0-9-]+(\.[a-zA-Z0-9-]+)*\.[a-zA-Z]{2,}$'
+            posted_domains = self.cleaned_data['competing_interest_domains'].split(',')
+            posted_domains = [
+                domain.lower() for domain in posted_domains
+                if re.match(domain_regex, domain.strip())
+            ]
+            for domain in posted_domains:
+                new_domain, c = models.EmailDomainCI.objects.get_or_create(name=domain)
+                user.competing_interest_domains.add(new_domain)
+
+            for domain in user.competing_interest_domains.all():
+                if domain.name not in posted_domains:
+                    user.competing_interest_domains.remove(domain)
 
         user.save()
 
         if commit:
             user.save()
+
+            selected_primary_topic = set(self.cleaned_data['primary_study_topic'])
+            selected_secondary_topics = set(self.cleaned_data['secondary_study_topic'])
+
+            existing_topics = models.AccountTopic.objects.filter(account=user)
+
+            with transaction.atomic():
+
+                for topic in selected_secondary_topics:
+                    models.AccountTopic.objects.update_or_create(
+                        account=user,
+                        topic=topic,
+                        defaults={'topic_type': models.AccountTopic.SECONDARY}
+                    )
+                
+                for topic in selected_primary_topic:
+                    models.AccountTopic.objects.update_or_create(
+                        account=user,
+                        topic=topic,
+                        defaults={'topic_type': models.AccountTopic.PRIMARY}
+                    )
+                
+                for account_topic in existing_topics.filter(topic_type=models.AccountTopic.PRIMARY):
+                    if account_topic.topic not in selected_primary_topic:
+                        account_topic.delete()
+
+                for account_topic in existing_topics.filter(topic_type=models.AccountTopic.SECONDARY):
+                    if account_topic.topic not in selected_secondary_topics:
+                        account_topic.delete()
 
         return user
 
@@ -483,6 +636,56 @@ class SectionForm(JanewayTranslationModelForm):
             self.fields['editors'].queryset = request.journal.users_with_role('editor')
             self.fields['editors'].required = False
 
+
+class TopicForm(forms.ModelForm):
+    class Meta:
+        model = models.Topics
+        fields = ['pretty_name', 'description', 'group']
+        labels = {
+            'pretty_name': 'Name',
+            'description': 'Description',
+            'group': 'Topic Group',
+        }
+
+    def __init__(self, *args, **kwargs):
+        request = kwargs.pop('request', None)
+        super(TopicForm, self).__init__(*args, **kwargs)
+        if request:
+            self.fields['group'].queryset = request.journal.topic_groups()
+            self.fields['group'].label_from_instance = lambda obj: "%s" % obj.pretty_name
+
+class TopicGroupForm(forms.ModelForm):
+    class Meta:
+        model = models.TopicGroup
+        fields = ['pretty_name', 'description']
+        labels = {
+            'pretty_name': 'Name',
+            'description': 'Description',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super(TopicGroupForm, self).__init__(*args, **kwargs)
+    
+    def formatted_name(self, pretty_name: str):
+        return re.sub(r'\s+', '_', re.sub(r'[()]', '', pretty_name)).lower()
+
+    def save(self, commit=True, request=None):
+        topic_group = super(TopicGroupForm, self).save(commit=False)
+        if request:
+            topic_group_pretty_name = topic_group.pretty_name
+            topic_group.journal = request.journal
+            topic_group.name = self.formatted_name(topic_group_pretty_name)
+        if commit:
+            topic_group.save()
+            default_topic_name = f'{topic_group_pretty_name} (others)'
+            models.Topics.objects.create(
+                pretty_name=default_topic_name,
+                name=self.formatted_name(default_topic_name),
+                journal=request.journal,
+                group=topic_group,
+                description='another topics'
+            )
+        return topic_group
 
 class QuickUserForm(forms.ModelForm):
     class Meta:

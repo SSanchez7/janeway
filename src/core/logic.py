@@ -348,6 +348,10 @@ def get_settings_to_edit(display_group, journal, user):
                 'object': setting_handler.get_setting('general', 'default_review_days', journal),
             },
             {
+                'name': 'default_editor_assignment_request_days',
+                'object': setting_handler.get_setting('general', 'default_editor_assignment_request_days', journal),
+            },
+            {
                 'name': 'enable_save_review_progress',
                 'object': setting_handler.get_setting('general', 'enable_save_review_progress', journal),
             },
@@ -362,6 +366,22 @@ def get_settings_to_edit(display_group, journal, user):
             {
                 'name': 'draft_decisions',
                 'object': setting_handler.get_setting('general', 'draft_decisions', journal),
+            },
+            {
+                'name': 'required_senior_editor',
+                'object': setting_handler.get_setting('general', 'required_senior_editor', journal),
+            },
+            {
+                'name': 'enable_invite_editor',
+                'object': setting_handler.get_setting('general', 'enable_invite_editor', journal),
+            },
+             {
+                'name': 'enable_study_topics',
+                'object': setting_handler.get_setting('general', 'enable_study_topics', journal),
+            },
+            {
+                'name': 'enable_custom_editor_assignment',
+                'object': setting_handler.get_setting('general', 'enable_custom_editor_assignment', journal),
             },
             {
                 'name': 'default_review_form',
@@ -423,6 +443,10 @@ def get_settings_to_edit(display_group, journal, user):
             {
                 'name': 'display_completed_reviews_in_additional_rounds_text',
                 'object': setting_handler.get_setting('general', 'display_completed_reviews_in_additional_rounds_text', journal),
+            },
+            {
+                'name': 'enable_competing_interest_selections',
+                'object': setting_handler.get_setting('general', 'enable_competing_interest_selections', journal),
             },
         ]
         setting_group = 'general'

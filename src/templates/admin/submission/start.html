@@ -10,7 +10,9 @@
 {% block title-sub %}
     {% trans "Please carefully read through the statements below before checking items" %}{% endblock %}
 {% block css %}
-    <link href="{% static 'admin/css/timeline.css' %}" rel="stylesheet">{% endblock %}
+    <link href="{% static 'admin/css/timeline.css' %}" rel="stylesheet">
+    {% include "elements/dual_listbox/dual_listbox_css.html" %}
+{% endblock %}
 
 {% block breadcrumbs %}
     {{ block.super }}
@@ -22,7 +24,6 @@
         <form method="POST">
             <div id="content submission-content" class="box">
                 {% csrf_token %}
-
                 {% include "admin/submission/timeline.html" with data=article %}
 
                 {% if request.journal.submissionconfiguration.publication_fees or request.journal.submissionconfiguration.submission_check or request.journal.submissionconfiguration.copyright_notice %}
@@ -68,8 +69,14 @@
 
                 {% if request.journal.submissionconfiguration.competing_interests %}
                     <div class="title-area">
-                        <h2>{% trans "Competing Interests" %}</h2>
+                        <h2>{% trans "Conflict of Interests" %}</h2>
                     </div>
+
+                    {% if journal_settings.general.enable_competing_interest_selections %}
+                    <p>{% trans "Search for users using the name. If an user is matched, they will be registered as a conflict of interest." %}</p>
+                    {% include "elements/dual_listbox/dual_listbox.html" with list_of_members=journal.editorial_members %}
+                    {% endif %}
+
                     <div class="content submission-content">
                         {{ form.competing_interests|foundation }}
                     </div>
@@ -80,5 +87,8 @@
             </div>
         </form>
     </article>
-
 {% endblock body %}
+
+{% block js %}
+{% include "elements/dual_listbox/dual_listbox_js.html" %}
+{% endblock %}

@@ -17,6 +17,10 @@
     {{ info_form.media }}
 {% endblock %}
 
+{% block css %}
+{% include "elements/dual_listbox/dual_listbox_css.html" %}
+{% endblock %}
+
 {% block body %}
     <div class="large-12 columns box">
         <div class="row expanded">
@@ -90,7 +94,36 @@
                             {{ info_form.primary_issue|foundation }}
                         </div>
                     </div>
+                    {% if journal_settings.general.enable_study_topics %}
+                    <div class="large-12 columns" style="padding: 0;">
+                        <div class="large-3 columns" style="margin-bottom: 16px;">
+                            <div class="row expanded">
+                                <div class="large-12 columns">
+                                    <label for="id_topics">{% trans 'Primary Study Topic' %}</label>
+                                    {{ info_form.primary_study_topic }}
+                                    <p class="help-text">{{ form.primary_study_topic.help_text}}</p>
+                                </div>
+                                
+                            </div>
+                        </div>
+                        <div class="large-9 columns" style="margin-bottom: 16px;">
+                            <div class="row expanded">
+                                <div class="large-12 columns">
+                                    <label for="id_topics">{% trans 'Secondary Study Topics' %}</label>
+                                    {{ info_form.secondary_study_topic }}
+                                </div>
+                                <p class="help-text" style="padding: 0 16px;">{{ form.secondary_study_topic.help_text}}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                     {% if request.journal.submissionconfiguration.competing_interests %}
+                        {% if journal_settings.general.enable_competing_interest_selections %}
+                        <div class="large-12 columns">
+                            <label style="padding: 0 16px;">{% trans 'Conflict of Interests' %}</label>
+                            {% include "elements/dual_listbox/dual_listbox.html" with list_of_members=journal.editorial_members current_members=article.competing_accounts %}
+                        </div>
+                        {% endif %}
                         <div class="large-10 columns">
                             {{ info_form.competing_interests|foundation }}
                         </div>
@@ -287,7 +320,8 @@
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.11.0/themes/smoothness/jquery-ui.css">
     <script type="text/javascript" src="{% static "common/js/jq-ui.min.js" %}"></script>
     <script src="{% static "common/js/tagit.js" %}"></script>
-
+    {{ info_form.media.css }}
+    {{ info_form.media.js }}
     <script type="text/javascript">
         $(document).ready(function () {
             $("#id_keywords").tagit(
@@ -320,4 +354,5 @@
         }
     </script>
     {% include 'admin/elements/fundref/fundref.html' %}
+    {% include "elements/dual_listbox/dual_listbox_js.html" %}
 {% endblock js %}

@@ -230,6 +230,25 @@
             "name": "email"
         },
         "setting": {
+            "description": "Email sent to editors to request an editor assignment.",
+            "is_translatable": true,
+            "name": "editor_assignment_request",
+            "pretty_name": "Editor Assignment Request",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "Dear {{ editor_assignment.editor.full_name }},<br/><br/>We are requesting that you undertake an editor assignment of \"{{ article.safe_title }}\" in {{ article.journal.name }}.<br/><br/>We would be most grateful for your time as the feedback from our editors is of the utmost importance to our editorial decision-making processes.<br/><br/>You can let us know your decision or decline to undertake the assignment: {{ review_unassigned_url }} <br/><br/>{{ article_details }}<br/><br/>Regards,<br/>{{ request.user.signature|safe }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
             "description": "Email sent to authors when they have submitted an article.",
             "is_translatable": true,
             "name": "submission_acknowledgement",
@@ -268,6 +287,25 @@
             "name": "email"
         },
         "setting": {
+            "description": "Email sent to editors when another editor or section editor accepts or declines an editor assignment request.",
+            "is_translatable": true,
+            "name": "editor_assignment_acknowledgement",
+            "pretty_name": "Editor Assignment Acknowledgement",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "Dear {{ editor_assignment.requesting_editor.full_name }},<br/><br/>This is a notification that the editor {{ editor_assignment.editor.full_name }} has responded to your editor assignment request for \" #{{ article.pk }}: {{ article.safe_title }}\" in {{ article.journal.name }} and have {{ editor_assignment_decision }} to perform the review. You can view more information on the journal site: {{ review_unassigned_url }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
             "description": "Email sent to authors when requesting revisions.",
             "is_translatable": true,
             "name": "request_revisions",
@@ -295,6 +333,25 @@
         },
         "value": {
             "default": "Dear {{ review_assignment.reviewer.full_name }}, <br/><br/>Thank you for agreeing to review \"{{ article.safe_title }}\" in {{ article.journal.name }}. <br/><br/>You can now access the manuscript and the review process at: {{ review_url }}  <br/><br/>Regards, <br/>{{ review_assignment.editor.signature|safe }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
+            "description": "Email sent to editors when they agree to be assigned in an article.",
+            "is_translatable": true,
+            "name": "editor_assignment_accept_acknowledgement",
+            "pretty_name": "Editor Assignment Acceptance Acknowledgement",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "Dear {{ editor_assignment.editor.full_name }}, <br/><br/>Thank you for agreeing to be assigned in \"{{ article.safe_title }}\" in {{ article.journal.name }}. <br/><br/>You can now access the manuscript and the review process at: {{ review_unassigned_url }}  <br/><br/>Regards, <br/>{{ editor_assignment.requesting_editor.signature|safe }}"
         },
         "editable_by": [
             "editor",
@@ -371,6 +428,25 @@
         },
         "value": {
             "default": "Dear {{ review_assignment.reviewer.full_name }}, \n\nThank you for letting us know that you are unable to review \"{{ article.safe_title }}\" in {{ article.journal.name }}.\n\n We are most grateful for your time.\n\nRegards,\n{{ request.user.signature|safe }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
+            "description": "Email sent to editors when they decline to be assigned in an article.",
+            "is_translatable": true,
+            "name": "editor_assignment_decline_acknowledgement",
+            "pretty_name": "Editor Assignment Decline Acknowledgement",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "Dear {{ editor_assignment.editor.full_name }}, \n\nThank you for letting us know that you are unable to participate in the editorial process of \"{{ article.safe_title }}\" in {{ article.journal.name }}.\n\n We are most grateful for your time.\n\nRegards,\n{{ editor_assignment.requesting_editor.signature|safe }}"
         },
         "editable_by": [
             "editor",
@@ -1674,6 +1750,82 @@
             "name": "general"
         },
         "setting": {
+            "description": "If enabled, Editors can be assigned to an article in a custom way.",
+            "is_translatable": false,
+            "name": "enable_custom_editor_assignment",
+            "pretty_name": "Enable Custom Editor Assignment",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "If enabled, Articles must be assigned at least one Senior Editor to review.",
+            "is_translatable": false,
+            "name": "required_senior_editor",
+            "pretty_name": "Required Senior Editor",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "If enabled, Editors can invite other Editors or Section Editors to be assigned to an article.",
+            "is_translatable": false,
+            "name": "enable_invite_editor",
+            "pretty_name": "Enable Invite Editor",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "If enabled, Articles can be related to preconfigured study topics from the journal, with the purpose of improving review assignments based on account matches.",
+            "is_translatable": false,
+            "name": "enable_study_topics",
+            "pretty_name": "Enable Study Topics",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
             "description": "If enabled, reviewers will be able to save the progress in a peer-review and come back later to complete it (Only recommended journals using custom review forms that are particularly long)",
             "is_translatable": false,
             "name": "enable_save_review_progress",
@@ -2043,6 +2195,25 @@
         },
         "value": {
             "default": "double-blind"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "The default number of days before an editor assignment is due.",
+            "is_translatable": false,
+            "name": "default_editor_assignment_request_days",
+            "pretty_name": "Default Number of Days for Editor Assignment",
+            "type": "number"
+        },
+        "value": {
+            "default": "56"
         },
         "editable_by": [
             "editor",
@@ -2697,6 +2868,25 @@
     },
     {
         "value": {
+            "default": "Editor Assignment Request"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Subject Editor Assignment Request",
+            "is_translatable": true,
+            "description": "Subject for Email sent to editors to request an editor assignment.",
+            "name": "subject_editor_assignment_request"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
             "default": "Journal Digest"
         },
         "setting": {
@@ -3077,6 +3267,25 @@
     },
     {
         "value": {
+            "default": "Editor Assignment Acknowledgement"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Editor Assignment Accepted",
+            "is_translatable": true,
+            "description": "Subject for Email sent to editors when they agree to be assigned to an article.",
+            "name": "subject_editor_assignment_accept_acknowledgement"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
             "default": "Review Assignment Updated"
         },
         "setting": {
@@ -3085,6 +3294,25 @@
             "is_translatable": true,
             "description": "Subject for Email sent to editors when a reviewer accepts or declines a review.",
             "name": "subject_reviewer_acknowledgement"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
+            "default": "Editor Assignment Updated"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Editor Assignment Acknowledgement",
+            "is_translatable": true,
+            "description": "Subject for Email sent to editors when an editor or section editor accepts or declines an editor asignment request.",
+            "name": "subject_editor_assignment_acknowledgement"
         },
         "group": {
             "name": "email_subject"
@@ -3218,6 +3446,25 @@
             "is_translatable": true,
             "description": "Subject for Email sent to reviewers when they decline to undertake a review.",
             "name": "subject_review_decline_acknowledgement"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
+            "default": "Editor Assignment Declined"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Editor Assignment Declination Acknowledgement",
+            "is_translatable": true,
+            "description": "Subject for Email sent to editors when they decline to be assigned to an article.",
+            "name": "subject_editor_assignment_decline_acknowledgement"
         },
         "group": {
             "name": "email_subject"
@@ -5017,6 +5264,25 @@
             "is_translatable": false,
             "name": "hide_editors_from_authors",
             "pretty_name": "Hide Assigned Editor Details",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "If enabled, Authors can select accounts that have potential competing interests with the article or its authors. This allows for better conflict of interest management and review assignments.",
+            "is_translatable": false,
+            "name": "enable_competing_interest_selections",
+            "pretty_name": "Enable Competing Interest Selections",
             "type": "boolean"
         },
         "value": {

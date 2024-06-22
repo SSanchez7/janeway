@@ -1779,10 +1779,20 @@ def manage_archive(request):
         '-date_declined'
     )
 
+    accepted_articles = submission_models.Article.objects.filter(
+        journal=request.journal,
+        stage__in=[
+            submission_models.STAGE_ACCEPTED,
+        ],
+    ).order_by(
+        '-date_accepted'
+    )
+
     template = 'journal/manage/archive.html'
     context = {
         'published_articles': published_articles,
         'rejected_articles': rejected_articles,
+        'accepted_articles': accepted_articles,
     }
 
     return render(request, template, context)

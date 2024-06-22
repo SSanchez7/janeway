@@ -33,6 +33,33 @@
         {{ form.country|foundation }}
     </div>
 </div>
+<div class="row">
+    <div class="large-12 columns" style="padding: 0;">
+        <div class="large-6 columns" style="margin-bottom: 16px;">
+            <div class="row expanded">
+                <div class="large-12 columns">
+                    <label for="id_topics">{% trans 'Preferred Study Topics' %}</label>
+                    {{ form.primary_study_topic }}
+                </div>
+                <p class="help-text" style="padding: 0 16px;">{{ form.primary_study_topic.help_text}}</p>
+            </div>
+        </div>
+        <div class="large-6 columns" style="margin-bottom: 16px;">
+            <div class="row expanded">
+                <div class="large-12 columns">
+                    <label for="id_topics">{% trans 'Another Study Topics' %}</label>
+                    {{ form.secondary_study_topic }}
+                </div>
+                <p class="help-text" style="padding: 0 16px;">{{ form.secondary_study_topic.help_text}}</p>
+            </div>
+        </div>
+    </div>
+    {% if journal_settings.general.enable_competing_interest_selections %}
+    <div class="large-12 columns">
+        {{ form.competing_interest_domains|foundation }}
+    </div>
+    {% endif %}
+</div>
 <hr />
 <h5>Social Media and Accounts</h5>
 <div class="row">

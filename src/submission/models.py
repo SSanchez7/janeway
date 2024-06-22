@@ -29,6 +29,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.template import Context, Template
 from django.template.loader import render_to_string
+from django.db.models import Q
 from django.db.models.signals import pre_delete, m2m_changed
 from django.dispatch import receiver
 from django.core import exceptions
@@ -261,6 +262,12 @@ REVIEW_STAGES = {
     STAGE_UNDER_REVIEW,
     STAGE_UNDER_REVISION,
     STAGE_ACCEPTED,
+}
+
+EDITOR_REVIEW_STAGES = {
+    STAGE_UNASSIGNED,
+    STAGE_ASSIGNED,
+    STAGE_UNDER_REVIEW,
 }
 
 # Stages used to determine if a review assignment is open
@@ -661,6 +668,8 @@ class Article(AbstractLastModifiedModel):
             "of interests in the publication of this "
             "article please state them here.",
     )
+    competing_interest_accounts = models.ManyToManyField('core.Account', through='ArticleAccountCI', blank=True, null=True, related_name='competing_interest_accounts')
+    study_topic = models.ManyToManyField('core.Topics', through='ArticleTopic', blank=True, null=True, related_name='study_topics')
     rights = JanewayBleachField(
         blank=True, null=True,
         help_text="A custom statement on the usage rights for this article"
@@ -1310,6 +1319,10 @@ class Article(AbstractLastModifiedModel):
         return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
                 assignment in self.editorassignment_set.all()]
 
+    def senior_editors(self):
+        return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
+                assignment in self.editorassignment_set.filter(editor_type='editor')]
+
     def section_editors(self, emails=False):
         editors = [assignment.editor for assignment in self.editorassignment_set.filter(editor_type='section-editor')]
 
@@ -1318,6 +1331,16 @@ class Article(AbstractLastModifiedModel):
 
         else:
             return editors
+    
+    def requested_editors(self):
+        return [{'editor': assignment.editor, 'editor_type': assignment.editor_type, 'assignment': assignment} for
+                assignment in self.editorassignmentrequest_set.filter(
+                    Q(is_complete=False) &
+                    Q(article__stage__in=EDITOR_REVIEW_STAGES) &
+                    Q(date_accepted__isnull=True) &
+                    Q(date_declined__isnull=True)
+                )
+        ]
 
     def editor_emails(self):
         return [assignment.editor.email for assignment in self.editorassignment_set.all()]
@@ -1340,6 +1363,26 @@ class Article(AbstractLastModifiedModel):
     def issues_list(self):
         from journal import models as journal_models
         return journal_models.Issue.objects.filter(journal=self.journal, articles__in=[self])
+
+    def topics(self, topic_type=None):
+        if topic_type:
+            return core_models.Topics.objects.filter(articletopic__article=self, articletopic__topic_type=topic_type)
+        return core_models.Topics.objects.filter(articletopic__article=self)
+
+    def topics_by_type(self):
+        primary_topics = core_models.Topics.objects.filter(
+            articletopic__article=self, articletopic__topic_type=ArticleTopic.PRIMARY
+        )
+        secondary_topics = core_models.Topics.objects.filter(
+            articletopic__article=self, articletopic__topic_type=ArticleTopic.SECONDARY
+        )
+        return {
+            'primary': primary_topics,
+            'secondary': secondary_topics,
+        }
+
+    def competing_accounts(self):
+        return core_models.Account.objects.filter(articleaccountci__article=self)
 
     @cache(7200)
     def altmetrics(self):
@@ -2417,3 +2460,37 @@ def order_keywords(sender, instance, action, reverse, model, pk_set, **kwargs):
 
 
 m2m_changed.connect(order_keywords, sender=Article.keywords.through)
+
+
+class ArticleTopic(models.Model):
+    PRIMARY = 'PR'
+    SECONDARY = 'SE'
+    TOPIC_TYPE_CHOICES = [
+        (PRIMARY, 'Primary'),
+        (SECONDARY, 'Secondary'),
+    ]
+    
+    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    topic = models.ForeignKey('core.Topics', on_delete=models.CASCADE)
+    topic_type = models.CharField(
+        max_length=2,
+        choices=TOPIC_TYPE_CHOICES,
+        default=PRIMARY,
+    )
+
+    class Meta:
+        unique_together = ('article', 'topic')
+
+    def __str__(self):
+        return f"{self.article} - {self.topic} ({self.topic_type})"
+
+
+class ArticleAccountCI(models.Model):    
+    article = models.ForeignKey(Article, on_delete=models.CASCADE)
+    account = models.ForeignKey('core.Account', on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('article', 'account')
+
+    def __str__(self):
+        return f"{self.article} - {self.account}"

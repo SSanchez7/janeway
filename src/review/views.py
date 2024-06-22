@@ -38,7 +38,8 @@ from security.decorators import (
     editor_is_not_author, senior_editor_user_required,
     section_editor_draft_decisions, article_stage_review_required,
     any_editor_user_required, setting_is_enabled,
-    user_has_completed_review_for_article
+    user_has_completed_review_for_article,
+    editor_user_for_assignment_request_required
 )
 from submission import models as submission_models, forms as submission_forms
 from utils import models as util_models, ithenticate, shared, setting_handler
@@ -138,21 +139,38 @@ def unassigned_article(request, article_id):
             )
         )
 
-    current_editors = [assignment.editor.pk for assignment in
-                       models.EditorAssignment.objects.filter(article=article)]
+    requested_editors = models.EditorAssignmentRequest.objects.filter(
+        Q(is_complete=False) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(date_accepted__isnull=True) &
+        Q(date_declined__isnull=True)
+    )
+
+    exclude_editors = [
+        assignment.editor.pk 
+        for assignment in models.EditorAssignment.objects.filter(article=article)
+    ]
+
+    enable_invite_editor = setting_handler.get_setting('general', 'enable_invite_editor', request.journal).value
+    if enable_invite_editor:
+        exclude_editors = exclude_editors + [request.editor.pk for request in requested_editors]
+
     editors = core_models.AccountRole.objects.filter(
         role__slug='editor',
-        journal=request.journal).exclude(user__id__in=current_editors)
+        journal=request.journal
+    ).exclude(user__id__in=exclude_editors)
     section_editors = core_models.AccountRole.objects.filter(
         role__slug='section-editor',
         journal=request.journal
-    ).exclude(user__id__in=current_editors)
+    ).exclude(user__id__in=exclude_editors)
+
 
     template = 'review/unassigned_article.html'
     context = {
         'article': article,
         'editors': editors,
         'section_editors': section_editors,
+        'requested_editors': requested_editors,
     }
 
     return render(request, template, context)
@@ -229,6 +247,122 @@ def view_ithenticate_report(request, article_id):
     return render(request, template, context)
 
 
+@editor_is_not_author
+@editor_user_required
+def add_editor_assignment(request, article_id):
+    """
+    Allow an editor to add a new editor assignment
+    :param request: HttpRequest object
+    :param article_id: Article PK
+    :return: HttpResponse
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+
+    editors = logic.get_editors_candidates(
+        article,
+        user=request.user,
+    )
+
+    form = forms.EditorAssignmentForm(
+        journal=request.journal,
+        article=article,
+        editors=editors
+    )
+
+    new_editor_form = core_forms.QuickUserForm()
+
+    if request.POST:
+
+        if 'assign' in request.POST:
+            # first check whether the user exists
+            new_editor_form = core_forms.QuickUserForm(request.POST)
+            try:
+                user = core_models.Account.objects.get(email=new_editor_form.data['email'])
+                user.add_account_role('section-editor', request.journal)
+            except core_models.Account.DoesNotExist:
+                user = None
+
+            if user:
+                return redirect(
+                    reverse(
+                        'add_editor_assignment',
+                        kwargs={'article_id': article.pk}
+                    ) + '?' + parse.urlencode({'user': new_editor_form.data['email'], 'id': str(user.pk)},)
+                )
+
+            valid = new_editor_form.is_valid()
+
+            if valid:
+                acc = logic.handle_editor_form(request, new_editor_form, 'section-editor')
+                return redirect(
+                    reverse(
+                        'add_editor_assignment', kwargs={'article_id': article.pk}
+                    ) + '?' + parse.urlencode({'user': new_editor_form.data['email'], 'id': str(acc.pk)}),
+                )
+            else:
+                form.modal = {'id': 'editor'}
+
+        elif 'invite' in request.POST:
+            form = forms.EditorAssignmentForm(
+                request.POST,
+                journal=request.journal,
+                article=article,
+                editors=editors,
+                invite_editor=True
+            )
+            if form.is_valid() and form.is_confirmed():
+                editor_assignment = form.save(request=request)
+                article.save()
+                return redirect(
+                    reverse(
+                        'notify_invite_editor_asignment',
+                        kwargs={'article_id': article_id, 'editor_assignment_id': editor_assignment.id}
+                    )
+                )
+        else:
+            form = forms.EditorAssignmentForm(
+                request.POST,
+                journal=request.journal,
+                article=article,
+                editors=editors,
+            )
+            if form.is_valid() and form.is_confirmed():
+                editor_assignment = form.save(request=request, commit=False)
+                editor = editor_assignment.editor
+                assignment_type = editor_assignment.editor_type
+
+                if not editor.has_an_editor_role(request):
+                    messages.add_message(request, messages.WARNING, 'User is not an Editor or Section Editor')
+                    return redirect(reverse('review_unassigned_article', kwargs={'article_id': article.pk}))
+
+                _, created = logic.assign_editor(article, editor, assignment_type, request)
+                messages.add_message(request, messages.SUCCESS, '{0} added as an Editor'.format(editor.full_name()))
+                if created and editor != request.user:
+                    return redirect(
+                        reverse(
+                            'review_assignment_notification',
+                            kwargs={'article_id': article_id, 'editor_id': editor.pk}
+                        ),
+                    )
+                elif not created:
+                    messages.add_message(request, messages.WARNING,
+                                        '{0} is already an Editor on this article.'.format(editor.full_name()))
+                
+                return redirect(reverse('review_unassigned_article', kwargs={'article_id': article_id}))        
+
+    template = 'admin/review/add_editor_assignment.html'
+
+    context = {
+        'article': article,
+        'form': form,
+        'editors': editors.filter(accountrole__role__slug='editor'),
+        'section_editors': editors.filter(accountrole__role__slug='section-editor'),
+        'new_editor_form': new_editor_form,
+    }
+
+    return render(request, template, context)
+
+
 @senior_editor_user_required
 def assign_editor_move_to_review(request, article_id, editor_id, assignment_type):
     """Allows an editor to assign another editor to an article and moves to review."""
@@ -260,7 +394,7 @@ def assign_editor(request, article_id, editor_id, assignment_type, should_redire
 
     _, created = logic.assign_editor(article, editor, assignment_type, request)
     messages.add_message(request, messages.SUCCESS, '{0} added as an Editor'.format(editor.full_name()))
-    if created and should_redirect:
+    if created and should_redirect and editor != request.user:
         return redirect('{0}?return={1}'.format(
             reverse('review_assignment_notification', kwargs={'article_id': article_id, 'editor_id': editor.pk}),
             request.GET.get('return')))
@@ -290,6 +424,22 @@ def unassign_editor(request, article_id, editor_id):
             email_context=email_context,
             request=request,
     )
+
+    if editor == request.user:
+        assignment.delete()
+
+        util_models.LogEntry.add_entry(
+            types='EditorialAction',
+            description='Editor {0} unassigned from article {1}'
+                ''.format(editor.full_name(), article.id),
+            level='Info',
+            request=request,
+            target=article,
+        )
+
+        return redirect(reverse(
+            'review_unassigned_article', kwargs={'article_id': article_id}
+        ))
 
     if request.method == "POST":
         form = core_forms.SettingEmailForm(
@@ -782,6 +932,118 @@ def decline_review_request(request, assignment_id):
     return render(request, template, context)
 
 
+@editor_user_for_assignment_request_required
+def accept_editor_assignment_request(request, assignment_id):
+    """
+    Accept an editor assignment request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+
+    # update the EditorAssignmentRequest object
+    assignment = models.EditorAssignmentRequest.objects.get(
+        Q(pk=assignment_id) &
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(date_accepted__isnull=True)
+    )
+
+    editor_assignment = models.EditorAssignment(
+        article=assignment.article,
+        editor=assignment.editor,
+        editor_type=assignment.editor_type,
+        notified=True
+    )
+    editor_assignment.save()
+
+    assignment.date_accepted = timezone.now()
+    assignment.editor_assignment = editor_assignment
+    assignment.save()
+
+    kwargs = {'editor_assignment': assignment,
+              'request': request,
+              'accepted': True}
+    
+    event_logic.Events.raise_event(event_logic.Events.ON_EDITOR_ASSIGNMENT_ACCEPTED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+
+    return redirect(
+        reverse(
+            'review_unassigned_article',
+            kwargs={'article_id': assignment.article.pk},
+        )
+    )
+
+
+@editor_user_for_assignment_request_required
+def decline_editor_assignment_request(request, assignment_id):
+    """
+    Decline an editor assignment request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+
+    assignment = models.EditorAssignmentRequest.objects.get(
+        Q(pk=assignment_id) &
+        Q(is_complete=False) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(editor=request.user)
+    )
+
+    assignment.date_declined = timezone.now()
+    assignment.date_accepted = None
+    assignment.is_complete = True
+    assignment.save()
+
+    template = 'review/editor_assignment_decline.html'
+    context = {
+        'assigned_articles_for_user_editor_review': assignment,
+        'access_code': ''
+    }
+
+    kwargs = {'editor_assignment': assignment,
+              'request': request,
+              'accepted': False}
+    event_logic.Events.raise_event(event_logic.Events.ON_EDITOR_ASSIGNMENT_ACCEPTED,
+                                   task_object=assignment.article,
+                                   **kwargs)
+
+    return render(request, template, context)
+
+
+@senior_editor_user_required
+def delete_editor_assignment_request(request, assignment_id):
+    """
+    Delete an editor assignment request
+    :param request: the request object
+    :param assignment_id: the assignment ID to handle
+    :return: a context for a Django template
+    """
+
+    assignment = get_object_or_404(
+        models.EditorAssignmentRequest, id=assignment_id
+    )
+
+    assignment.delete()
+
+    util_models.LogEntry.add_entry(
+        types='EditorialAction',
+        description='Editor {0} unrequested from article {1}'
+            ''.format(assignment.editor.full_name(), assignment.article.id),
+        level='Info',
+        request=request,
+        target=assignment.article,
+    )
+
+    return redirect(reverse(
+        'review_unassigned_article', kwargs={'article_id': assignment.article.id}
+    ))
+
+
 @reviewer_user_for_assignment_required
 def suggest_reviewers(request, assignment_id):
     """
@@ -863,6 +1125,29 @@ def review_requests(request):
         'new_requests': new_requests,
         'active_requests': active_requests,
         'completed_requests': completed_requests,
+    }
+
+    return render(request, template, context)
+
+
+@any_editor_user_required
+def editor_assignment_requests(request):
+    """
+    A list of editor assignment requests for the current user
+    :param request: the request object
+    :return: a context for a Django template
+    """
+    new_requests = models.EditorAssignmentRequest.objects.filter(
+        Q(is_complete=False) &
+        Q(editor=request.user) &
+        Q(article__stage__in=submission_models.EDITOR_REVIEW_STAGES) &
+        Q(date_accepted__isnull=True),
+        article__journal=request.journal
+    ).select_related('article')
+
+    template = 'review/editor_assignment_requests.html'
+    context = {
+        'new_requests': new_requests,
     }
 
     return render(request, template, context)
@@ -1411,6 +1696,67 @@ def edit_review_answer(request, article_id, review_id, answer_id):
         'review': review,
         'answer': answer,
         'form': form,
+    }
+
+    return render(request, template, context)
+
+
+@editor_is_not_author
+@editor_user_required
+def notify_invite_editor(request, article_id, editor_assignment_id):
+    """
+    Allows the editor to send a notification to another invited editor
+    :param request: HttpRequest object
+    :param article_id: Articke PK
+    :param editor_id: EditorAssignmentRequest PK
+    :return: HttpResponse or HttpRedirect
+    """
+    article = get_object_or_404(submission_models.Article, pk=article_id)
+    editor_assignment_request = get_object_or_404(models.EditorAssignmentRequest, pk=editor_assignment_id)
+
+    email_context = logic.get_editor_notification_context(
+        request, article, request.user, editor_assignment_request)
+
+    form = core_forms.SettingEmailForm(
+        setting_name="editor_assignment_request",
+        email_context=email_context,
+        request=request,
+    )
+
+    if request.POST:
+        skip = request.POST.get("skip")
+        form = core_forms.SettingEmailForm(
+            request.POST, request.FILES,
+            setting_name="editor_assignment_request",
+            email_context=email_context,
+            request=request,
+        )
+
+        if form.is_valid() or skip:
+            kwargs = {
+                'email_data': form.as_dataclass(),
+                'editor_assignment': editor_assignment_request,
+                'request': request,
+                'skip': skip,
+            }
+
+            event_logic.Events.raise_event(
+                event_logic.Events.ON_EDITOR_REQUESTED_NOTIFICATION, **kwargs)
+
+            editor_assignment_request.date_requested = timezone.now()
+            editor_assignment_request.save()
+
+        return redirect(reverse(
+            'review_unassigned_article',
+            kwargs={'article_id': article.pk},
+        ))
+
+    template = 'review/notify_invite_editor.html'
+    context = {
+        'article': article,
+        'editor': editor_assignment_request,
+        'form': form,
+        'assignment': editor_assignment_request,
     }
 
     return render(request, template, context)
@@ -2379,6 +2725,12 @@ def draft_decision(request, article_id):
     drafts = models.DecisionDraft.objects.filter(article=article)
     message_to_editor = logic.get_draft_email_message(request, article)
     editors = request.journal.editors()
+
+    required_senior_editor = setting_handler.get_setting(
+        'general', 'required_senior_editor', request.journal
+    ).value
+    if required_senior_editor:
+        editors = editors.filter(id__in=[editor.pk for editor in article.editor_list()])
 
     form = forms.DraftDecisionForm(
         message_to_editor=message_to_editor,
