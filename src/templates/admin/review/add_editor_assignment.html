@@ -23,19 +23,30 @@
                         <a href="{% url 'core_manager_enrol_users' %}" class="button" target="_blank"><i class="fa fa-users">&nbsp;</i>Enroll Existing User</a>
                 </div>
                 <div class="content">
-
-                    <p>
-                        {% blocktrans %}
-                        You can select an editor using the radio buttons in the first column and complete the section under "Set Options".
-                        If you cannot find the editor you want in this list you can use "Enroll Existing User" to search the database and give users the Editor role, or "Add New Editor" to create a new account for an editor (this process is silent, they will not receive an account creation email).
-                        {% endblocktrans %}
-                    </p>
-
-                    {% if past_editors %}
-                        <div class="callout primary">
-                            <p><span class="fa fa-info-circle"></span> Editors who have compeleted an editor decision for this article in a previous round will appear at the top of this list, they will show with a <strong>Yes</strong> in the <strong>Has Editor Decided Article</strong> column.</p>
-                        </div>
-                    {% endif %}
+                    <div class="callout primary">
+                        <p><span class="fa fa-info-circle"></span>&nbsp;
+                            {% blocktrans %}
+                                You can select an editor using the radio 
+                                buttons in the first column. If you want to invite
+                                an editor you must complete the 
+                                section under <b>Set Options</b>.
+                                If you cannot find the editor you want in 
+                                this list you can use <b>Enroll Existing User</b> to 
+                                search the database and give users the Editor 
+                                role, or <b>Add New Editor</b> to create a new 
+                                account for an editor (this process is silent, 
+                                they will not receive an account creation 
+                                email).
+                            {% endblocktrans %}
+                        </p>
+                        {% if journal_settings.general.enable_competing_interest_selections %}
+                        <p>
+                            Editors who have conflicts of interest with the article 
+                            or their authors, will appear with the &#10148; symbol and 
+                            cannot be selected.
+                        </p>
+                        {% endif %}
+                    </div>
                     
                     {% if journal_settings.general.enable_study_topics %}
                     <div style="display: flex; gap:10px;">
@@ -61,71 +72,18 @@
                             <th>Active Assignments</th>
                             <th width="40%" class="list-interests" {% if journal_settings.general.enable_study_topics %} hidden {% else %} show {% endif %}>Interests</th>
                             <th width="40%" class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>Study Topics</th>
-                            <th class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>Match Score</th>
-                            {% if past_editors %}<th>Has Editor Decided Article</th>{% endif %}
+                            <th class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
+                                {% include "elements/info_tooltip.html" with label_text='Match Score' info_message='Account score based on study topic matches.' %}
+                            </th>
                         </tr>
                         </thead>
 
                         <tbody>
                         {% for editor in editors %}
-                            {% if journal_settings.general.enable_suggested_editors or not editor in suggested_editors %}
-                            <tr {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}style="color: #b9b9b9;"{% endif %}>
-                                <td>
-                                    <input type="radio" name="editor" value="{{ editor.id }}"
-                                    {% if editor.id == form.cleaned_data.editor.pk %}checked=True{% endif %}
-                                    {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}disabled{% endif %}
-                                    >
-                                    {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}
-                                    <span data-tooltip class="top" tabindex="2" title="Account with conflict of interests.">
-                                        CI
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ editor.full_name }}</td>
-                                <td>{{ editor.email }}</td>
-                                <td>Editor</td>
-                                <td>{{ editor.active_assignments_count|default_if_none:0 }}</td>
-                                <td class="list-interests" {% if journal_settings.general.enable_study_topics %} hidden {% else %} show {% endif %}>
-                                    {% for interest in editor.interest.all %}{{ interest.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                                </td>
-                                <td class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
-                                    {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=editor.topics_by_type %}
-                                </td>
-                                <td class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
-                                    {{ editor.total_topic_matches}}
-                                </td>
-                            </tr>
-                            {% endif %}
+                            {% include "admin/elements/review/add_editor_table_custom_row.html" with editor_type_label='Editor' %}
                         {% endfor %}
                         {% for editor in section_editors %}
-                            {% if not journal_settings.general.enable_suggested_editors or not editor in suggested_editors %}
-                            <tr {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}style="color: #b9b9b9;"{% endif %}>
-                                <td>
-                                    <input type="radio" name="editor" value="{{ editor.id }}"
-                                    {% if editor.id == form.cleaned_data.editor.pk %}checked=True{% endif %}
-                                    {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}disabled{% endif %}
-                                    >
-                                    {% if journal_settings.general.enable_competing_interest_selections and editor.has_conflict %}
-                                    <span data-tooltip class="top" tabindex="2" title="Account with conflict of interests.">
-                                        CI
-                                    </span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ editor.full_name }}</td>
-                                <td>{{ editor.email }}</td>
-                                <td>Section Editor</td>
-                                <td>{{ editor.active_assignments_count|default_if_none:0 }}</td>
-                                <td class="list-interests" {% if journal_settings.general.enable_study_topics %} hidden {% else %} show {% endif %}>
-                                    {% for interest in editor.interest.all %}{{ interest.name }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                                </td>
-                                <td class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
-                                    {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=editor.topics_by_type %}
-                                </td>
-                                <td class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
-                                    {{ editor.total_topic_matches}}
-                                </td>
-                            </tr>
-                            {% endif %}
+                            {% include "admin/elements/review/add_editor_table_custom_row.html" with editor_type_label='Section Editor' %}
                         {% endfor %}
                         {% if not editors and not section_editors %}
                             <tr>
@@ -138,26 +96,27 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="row expanded">
+                    <div class="large-12 columns">
+                        <button type="submit" class="button success" name="add" id="add">Add Editor</button>
+                        &nbsp;
+                    </div>
+                </div>
+                
+                {% if journal_settings.general.enable_invite_editor %}
                 <div class="content">
-                    {% if journal_settings.general.enable_invite_editor %}
                     <div class="title-area">
                         <h2>2. Set Options</h2>
                     </div>
                     <div class="row expanded">
                         <div class="large-4 columns">{{ form.date_due|foundation }}</div>
-                    </div>
-                    {% endif %}
-                    <div class="row expanded">
                         <div class="large-12 columns">
-                            <button type="submit" class="button success" name="add" id="add">Add Editor</button>
-                            &nbsp;
-                            {% if journal_settings.general.enable_invite_editor %}
                             <button class="button success" style="background-color: transparent;border: 1px solid;" name="invite" type="submit" id="invite">Invite Editor</button>
                             &nbsp;
-                            {% endif %}
                         </div>
                     </div>
                 </div>
+                {% endif %}
             </div>
             </div>        &nbsp;&nbsp;
         </form>

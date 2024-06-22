@@ -23,15 +23,15 @@
                 </div>
                 <div class="content">
                     <div class="callout primary">
-                        <p> <span class="fa fa-info-circle"></span>
+                        <p><span class="fa fa-info-circle"></span>&nbsp;
                             {% blocktrans %}
                                 You can select a reviewer using the radio
                                 buttons in the first column and complete the
-                                section under 'Set Options'.
+                                section under <b>Set Options</b>.
                                 If you cannot find the reviewer you want in
-                                this list you can use 'Enroll Existing User' to
+                                this list you can use <b>Enroll Existing User</b> to
                                 search the database and give users the Reviewer
-                                role, or 'Add New Reviewer' to create a new
+                                role, or <b>Add New Reviewer</b> to create a new
                                 account for a reviewer (this process is silent,
                                 so they will not receive an account creation
                                 email).
@@ -40,9 +40,16 @@
                         <p>
                             Reviewers who have completed a review for this
                             article in a previous round will appear at the top
-                            of this list and will show 'Yes' in the 'Has
-                            Reviewed Article' column.
+                            of this list and will show <b>Yes</b> in the <b>Has
+                                Reviewed Article</b> column.
                         </p>
+                        {% if journal_settings.general.enable_competing_interest_selections %}
+                        <p>
+                            Reviewers who have conflicts of interest with the article 
+                            or their authors, will appear with the &#10148; symbol and 
+                            cannot be selected.
+                        </p>
+                        {% endif %}
                     </div>
 
                     {% if journal_settings.general.enable_study_topics %}
@@ -68,8 +75,12 @@
                             <th>Active Reviews</th>
                             <th width="30%" class="list-interests" {% if journal_settings.general.enable_study_topics %} hidden {% else %} show {% endif %}>Interests</th>
                             <th width="30%" class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>Study Topics</th>
-                            <th class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>Match Score</th>
-                            <th>Average Score</th>
+                            <th class="list-study-topics" {% if journal_settings.general.enable_study_topics %} show {% else %} hidden {% endif %}>
+                                {% include "elements/info_tooltip.html" with label_text='Match Score' info_message='Account score based on study topic matches.' %}
+                            </th>
+                            <th>
+                                {% include "elements/info_tooltip.html" with label_text='Average Score' info_message='Account score based on ratings.' %}
+                            </th>
                             <th>Last Review Completed</th>
                             <th>Has Reviewed Article</th>
                             {% if journal_settings.general.enable_suggested_reviewers %}<th>Suggested Reviewer</th>{% endif %}

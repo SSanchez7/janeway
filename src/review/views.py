@@ -315,7 +315,7 @@ def add_editor_assignment(request, article_id):
                 article.save()
                 return redirect(
                     reverse(
-                        'notify_invite_editor_asignment',
+                        'notify_invite_editor_assignment',
                         kwargs={'article_id': article_id, 'editor_assignment_id': editor_assignment.id}
                     )
                 )
