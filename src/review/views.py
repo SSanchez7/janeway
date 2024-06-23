@@ -1055,6 +1055,62 @@ def edit_editor_assignment_request(request, assignment_id):
 
 
 @senior_editor_user_required
+def remind_editor_assignment_request(request, assignment_id):
+    """
+    Allows a senior editor to resent an editor assignment invite or manually send a reminder.
+    :param request: Django's request object
+    :param assignment_id: EditorAssignmentRequest PK
+    :return: HttpResponse or HttpRedirect
+    """
+
+    assignment = get_object_or_404(
+        models.EditorAssignmentRequest, id=assignment_id
+    )
+
+    email_context = logic.get_editor_notification_context(
+        request, assignment.article, request.user, assignment)
+
+    form = core_forms.SettingEmailForm(
+        setting_name="editor_assignment_reminder",
+        email_context=email_context,
+        request=request,
+    )
+
+    if request.POST:
+        form = core_forms.SettingEmailForm(
+            request.POST, request.FILES,
+            setting_name="editor_assignment_reminder",
+            email_context=email_context,
+            request=request,
+        )
+
+        if form.is_valid():
+            kwargs = {
+                'email_data': form.as_dataclass(),
+                'editor_assignment': assignment,
+                'request': request,
+            }
+
+            event_logic.Events.raise_event(
+                event_logic.Events.ON_EDITOR_REQUEST_REMINDED, **kwargs)
+
+        return redirect(reverse(
+            'review_unassigned_article',
+            kwargs={'article_id': assignment.article.pk},
+        ))
+
+    template = 'review/notify_remind_editor.html'
+    context = {
+        'article': assignment.article,
+        'editor': assignment.editor,
+        'form': form,
+        'assignment': assignment,
+    }
+
+    return render(request, template, context)
+
+
+@senior_editor_user_required
 def delete_editor_assignment_request(request, assignment_id):
     """
     Delete an editor assignment request

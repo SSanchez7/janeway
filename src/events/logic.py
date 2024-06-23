@@ -26,6 +26,7 @@ class Events:
     # kwargs: editor_assignment, request, email_data, acknowledgement (true), skip (boolean)
     # raised when an editor decides to notify to another editor with a custom message or skipped the email
     ON_EDITOR_REQUESTED_NOTIFICATION = 'on_editor_requested_notification'
+    ON_EDITOR_REQUEST_REMINDED = 'on_editor_request_reminded'
     # kwargs: editor_assignment, request, accepted (boolean)
     # raised when an editor accepts or declines to assignment request
     ON_EDITOR_ASSIGNMENT_ACCEPTED = 'on_editor_assignment_accepted'

@@ -249,6 +249,25 @@
             "name": "email"
         },
         "setting": {
+            "description": "Email to remind editors of a new assignment request.",
+            "is_translatable": true,
+            "name": "editor_assignment_reminder",
+            "pretty_name": "Editor Assignment Reminder",
+            "type": "rich-text"
+        },
+        "value": {
+            "default": "Dear {{ editor_assignment.editor.full_name }},<br/><br/>We recently sent you an email requesting if you can participate in the review of \"{{ article.safe_title }}\" in {{ article.journal.name }}.<br/><br/>We would be most grateful for your time as the feedback from our editors is of the utmost importance to our editorial decision-making processes.<br/><br/>We would appreciate it if you could let us know your decision or decline to participate in the review process <br/><br/>Regards,<br/>{{ request.user.signature|safe }}"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "email"
+        },
+        "setting": {
             "description": "Email sent to authors when they have submitted an article.",
             "is_translatable": true,
             "name": "submission_acknowledgement",
@@ -2876,6 +2895,25 @@
             "is_translatable": true,
             "description": "Subject for Email sent to editors to request an editor assignment.",
             "name": "subject_editor_assignment_request"
+        },
+        "group": {
+            "name": "email_subject"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "value": {
+            "default": "Editor Assignment Request Reminder"
+        },
+        "setting": {
+            "type": "text",
+            "pretty_name": "Subject Editor Assignment Reminder",
+            "is_translatable": true,
+            "description": "Subject for Email sent to editors to remind an editor assignment request.",
+            "name": "subject_editor_assignment_reminder"
         },
         "group": {
             "name": "email_subject"
