@@ -297,36 +297,51 @@
                             {% endif %}
                             </td>
                         </tr>
-                    {% endfor %}
-                    {% if journal_settings.general.enable_invite_editor and editor_can_access %}
-                    {% for assignment in requested_editors %}
-                    <tr style="color: #b9b9b9;">
-                        <td>{{ assignment.editor.full_name }}</td>
-                        <td>{{ assignment.editor.email }}</td>
-                        <td>
-                            {{ assignment.editor_type|capfirst }}
-                        </td>
-                        <td>
-                            <span data-tooltip class="top" tabindex="2" title="Date due: {{ assignment.date_due|date:"Y-m-d" }}">
-                                Requested
-                            </span>
-                        </td>
-                        {% if editor_can_access %}
-                        <td>
-                            <a href="{% url 'delete_editor_assignment' assignment.id %}">Cancel</a>
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endfor %}
-                    {% endif %}
-                    {% if not article.editors and not requested_editors %}
+                    {% empty %}
                         <tr>
                             <td colspan="4">No users assigned</td>
                         </tr>
-                    {% endif %}
+                    {% endfor %}
                 </table>
             </div>
         </div>
+
+        {% if journal_settings.general.enable_invite_editor and requested_editors and editor_can_access %}
+        <div class="box">
+            <div class="title-area">
+                <h2>Editor Requests</h2>
+            </div>
+            <div class="content">
+                <table class="scroll small" id="unassigned">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Type</th>
+                        <th>Date Due</th>
+                        <th></th>
+                    </tr>
+                    {% for assignment in requested_editors %}
+                    <tr>
+                        <td>
+                            {{ assignment.editor.full_name }}&nbsp;
+                            <span data-tooltip title="Email editor."><a
+                                onclick="return popitup('{% url 'send_user_email_article' assignment.editor.id article.pk %}')"><span
+                                class="fa fa-envelope">&nbsp;</span></a></span>
+                        </td>
+                        <td>{{ assignment.editor.email }}</td>
+                        <td>{{ assignment.editor_type|capfirst }}</td>
+                        <td>{{ assignment.date_due|date:"Y-m-d" }}</td>
+                        <td>{% include "admin/elements/review/editor_request_dropdown.html" %}</td>
+                    </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="4">No users requested</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+        {% endif %}
 
         {% if is_editor %}
         {% if journal_settings.general.required_senior_editor %}
