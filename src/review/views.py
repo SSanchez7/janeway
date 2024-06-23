@@ -1016,6 +1016,45 @@ def decline_editor_assignment_request(request, assignment_id):
 
 
 @senior_editor_user_required
+def edit_editor_assignment_request(request, assignment_id):
+    """
+    A view that allows a user to edit an editor assignment request.
+    :param request: Django's request object
+    :param assignment_id: EditorAssignmentRequest PK
+    :return: a rendered django template
+    """
+
+    assignment = get_object_or_404(
+        models.EditorAssignmentRequest, id=assignment_id
+    )
+
+    if assignment.date_complete:
+        messages.add_message(request, messages.WARNING, 'You cannot edit an editor assignment that is already complete.')
+        return redirect(reverse('review_unassigned_article', kwargs={'article_id': assignment.article.id}))
+
+    form = forms.EditEditorAssignmentForm(instance=assignment, journal=request.journal)
+
+    if request.POST:
+        form = forms.EditEditorAssignmentForm(request.POST, instance=assignment, journal=request.journal)
+
+        if form.is_valid():
+            form.save()
+            messages.add_message(request, messages.INFO, 'Editor Assignment updates.')
+            util_models.LogEntry.add_entry('Editor Assignment Deleted', 'Editor Assignment updated.', level='Info', actor=request.user,
+                                           request=request, target=assignment)
+            return redirect(reverse('review_unassigned_article', kwargs={'article_id': assignment.article.id}))
+
+    template = 'review/edit_editor_assignment.html'
+    context = {
+        'article': assignment.article,
+        'assignment': assignment,
+        'form': form,
+    }
+
+    return render(request, template, context)
+
+
+@senior_editor_user_required
 def delete_editor_assignment_request(request, assignment_id):
     """
     Delete an editor assignment request
