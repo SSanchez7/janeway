@@ -117,14 +117,20 @@
                 <div class="content">
                     <div class="callout primary">
                         <p><span class="fa fa-info-circle"></span>&nbsp;
-                        In this section you can add a covering letter for the editor and a response letter that will be shared with the reviewers.</p>
+                            In this section you can add a covering letter for the 
+                            editor and a response letter that will be shared with the reviewers.
+                            You can also upload the response letter as an attached file using 
+                            the <b>Upload Response Letter</b> button.
+                        </p>
                         <p>If you want to save your responses and
                             come back later, click the <b>Save Responses</b>
                             button below. Once you are ready to
                             send your letters, see the <b>Finishing Up</b>
-                            section below.</p>
+                            section below.
+                        </p>
                     </div>
                     {% include "elements/forms/errors.html" with form=form %}
+                    {% include "elements/revision_response_letter.html" %}
                     <div class="row expanded">
                         <div class="large-6 medium-12 columns">
                             {{ form.author_note|foundation }}
