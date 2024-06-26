@@ -3366,6 +3366,7 @@ def decision_helper(request, article_id):
     reviews = models.ReviewAssignment.objects.filter(
         article=article,
     )
+    review_rounds = models.ReviewRound.objects.filter(article=article)
 
     uncomplete_reviews = reviews.filter(
         article=article,
@@ -3432,6 +3433,7 @@ def decision_helper(request, article_id):
     template = 'admin/review/decision_helper.html'
     context = {
         'article': article,
+        'review_rounds': review_rounds,
         'complete_reviews': complete_reviews,
         'uncomplete_reviews': uncomplete_reviews,
         'decisions': dict(decisions)
