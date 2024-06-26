@@ -16,35 +16,52 @@
     <div class="large-12 columns">
         <div class="box">
             <div class="title-area">
-                <h2>Information</h2>
+                <h2>1. Information</h2>
             </div>
             <div class="content">
+                <div class="callout primary">
+                    <p><span class="fa fa-info-circle"></span>&nbsp;
+                        {% blocktrans %}
+                        You have been asked to revise your article manuscript. If the editor has made peer review comments
+                        available for you to view, these will be visible below. The manuscript and any additional files are
+                        also listed below.
+                        {% endblocktrans %}
+                    </p>
+                </div>
                 <p>
-                    You have been asked to revise your article manuscript. If the editor has made peer review comments
-                    available for you to view, these will be visible below. The manuscript and any additional files are
-                    also listed below.
+                    The editor, <b>{{ revision_request.editor.full_name }}</b>, supplied the following note:
                 </p>
-                <p>
-                    The editor, {{ revision_request.editor.full_name }}, supplied the following note
-                </p>
-                {{ revision_request.editor_note|safe }}
-                <br/><br/>
+                <table class="scroll">
+                    <tr><td colspan="4">
+                        {% if revision_request.editor_note %}
+                            {{ revision_request.editor_note|safe }}
+                        {% else %}
+                            No Information
+                        {% endif %}
+                    </td></tr>
+                </table>
+                <br/>
             </div>
+            {% if reviews %}
             <div class="title-area">
-                <h2>Reviews</h2>
+                <h2>2. Reviews</h2>
             </div>
             <div class="content">
                 {% include "admin/elements/review/view_reviews.html" %}
             </div>
+            {% endif %}
             <form method="POST" id="do_revision">
                 {% csrf_token %}
                 <div class="title-area">
-                    <h2>Files</h2>
+                    <h2>{% if reviews %}3.{% else %}2.{% endif %}Files</h2>
                 </div>
                 <div class="content">
-                    <p>Your article files are listed below. You can use the 'Upload Revised File' button next to each
-                        file to upload a new version of the file, or use the 'Upload New File' button to upload a new
+                    <div class="callout primary">
+                        <p><span class="fa fa-info-circle"></span>&nbsp;
+                        Your article files are listed below. You can use the <b>Upload Revised File</b> button next to each
+                        file to upload a new version of the file, or use the <b>Upload New File</b> button to upload a new
                         file.</p>
+                    </div>
                     <a href="{% url 'revisions_upload_new_file' article.pk revision_request.pk %}"
                        class="button"><i class="fa fa-upload">&nbsp;</i>Upload New File</a>
                     <table class="scroll small">
@@ -95,11 +112,25 @@
                     </table>
                 </div>
                 <div class="title-area">
-                    <h2>Responses</h2>
+                    <h2>{% if reviews %}4.{% else %}3.{% endif %} Responses</h2>
                 </div>
                 <div class="content">
-                    <p>In this section you can add a covering letter for the editor and a response letter that will be shared with the reviewers.</p>
+                    <div class="callout primary">
+                        <p><span class="fa fa-info-circle"></span>&nbsp;
+                            In this section you can add a covering letter for the 
+                            editor and a response letter that will be shared with the reviewers.
+                            You can also upload the response letter as an attached file using 
+                            the <b>Upload Response Letter</b> button.
+                        </p>
+                        <p>If you want to save your responses and
+                            come back later, click the <b>Save Responses</b>
+                            button below. Once you are ready to
+                            send your letters, see the <b>Finishing Up</b>
+                            section below.
+                        </p>
+                    </div>
                     {% include "elements/forms/errors.html" with form=form %}
+                    {% include "elements/revision_response_letter.html" %}
                     <div class="row expanded">
                         <div class="large-6 medium-12 columns">
                             {{ form.author_note|foundation }}
@@ -109,20 +140,18 @@
                         </div>
                     </div>
 
-                    <p>If you want to save your responses and
-                        come back later, click the 'Save Responses'
-                        button below. Once you are ready to
-                        send your letters, see the 'Finishing Up'
-                        section below.</p>
                     <button class="button success" name="save">
                         Save Responses
                     </button>
                 </div>
                 <div class="title-area">
-                    <h2>Finishing Up</h2>
+                    <h2>{% if reviews %}5.{% else %}4.{% endif %}Finishing Up</h2>
                 </div>
                 <div class="content">
-                    <p>{% trans "When you have completed your revisions and finished writing your covering letter, click the 'Submit Revisions' button below to finish. Please note that you will not be able to make any further changes to your letter or revisions once you click 'Submit Revisions'" %}</p>
+                    <div class="callout primary">
+                        <p><span class="fa fa-info-circle"></span>&nbsp;
+                        {% trans "When you have completed your revisions and finished writing your covering letter, click the <b>Submit Revisions</b> button below to finish. Please note that you will not be able to make any further changes to your letter or revisions once you click <b>Submit Revisions</b>" %}</p>
+                    </div>
                     <button class="button success" name="{{ form.CONFIRMABLE_BUTTON_NAME }}">Submit Revisions</button>
                 </div>
             </form>

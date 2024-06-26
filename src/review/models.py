@@ -612,6 +612,13 @@ class RevisionRequest(models.Model):
                   'reviewers, providing details about the changes you made '
                   'to your manuscript or counter arguments.',
     )
+    response_letter_file = models.ForeignKey(
+        'core.File',
+        null=True,
+        blank=True,
+        related_name='response_letter_file',
+        on_delete=models.SET_NULL,
+    )
 
     date_requested = models.DateTimeField(default=timezone.now)
     date_due = models.DateField()

@@ -2572,6 +2572,40 @@ def do_revisions(request, article_id, revision_id):
             )
             return redirect(post_redirect)
 
+        if 'delete-letter-file' in request.POST:
+            file_id = request.POST.get('delete-letter-file')
+            file = get_object_or_404(core_models.File, pk=file_id)
+            revision_request.response_letter_file = None
+            revision_request.save()
+            logic.log_revision_event(
+                'File {0} ({1}) deleted.'.format(
+                    file.id,
+                    file.original_filename
+                ),
+                request.user,
+                revision_request,
+            )
+            return redirect(post_redirect)
+
+        elif 'submit-letter-file' in request.POST:
+            uploaded_file = request.FILES.get('file')
+            label = request.POST.get('label')
+            new_file = files.save_file_to_article(
+                uploaded_file,
+                revision_request.article,
+                request.user,
+                label=label,
+            )
+            revision_request.response_letter_file = new_file
+            revision_request.save()
+
+            logic.log_revision_event(
+            'New file {0} ({1}) uploaded'.format(
+                new_file.label, new_file.original_filename),
+            request.user, revision_request)
+
+            return redirect(post_redirect)
+
         elif 'save' in request.POST:
             form = forms.DoRevisions(
                 request.POST,
