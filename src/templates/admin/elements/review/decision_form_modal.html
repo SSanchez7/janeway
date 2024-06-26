@@ -30,7 +30,7 @@
                     <h2>Comments for the Editor (Won't be shown to the authors)</h2>
                 </div>
                 <div class="content">
-                    <p>{{ review.comments_for_editor|linebreaksbr }}</p>
+                    {{ review.comments_for_editor|safe|linebreaksbr }}
                 </div>
             {% endif %}
         </div>
