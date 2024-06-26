@@ -1,0 +1,80 @@
+<div class="content">
+    <table class="hover scroll">
+        <tr>
+            <th>Article Title</th>
+        </tr>
+        <tr>
+            <td colspan="4">{{ review_request.article.title }}</td>
+        </tr>
+        <tr>
+            <th>Section</th>
+            <th>Language</th>
+            <th>Date Due</th>
+        </tr>
+        <tr>
+            <td>{{ review_request.article.section.name }}</td>
+            <td>{{ review_request.article.get_language_display }}</td>
+            <td>{{ review_request.date_due|date:"Y-m-d" }}</td>
+        </tr>
+        <tr>
+            <th colspan="4">Abstract</th>
+        </tr>
+        <tr>
+            <td colspan="4">{{ review_request.article.abstract|safe }}</td>
+        </tr>
+    </table>
+</div>
+
+<div class="title-area">
+    <h2>Handling Editors</h2>
+</div>
+<div class="content">
+{% if review_request.article.editor_list %}
+    <table class="hover stack scroll">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Affiliation</th>
+        </tr>
+        {% for editor in review_request.article.editor_list %}
+            <tr>
+                <td>{{ editor }}&nbsp;&nbsp;<a href="mailto:{{ editor.email }}?subject={{ review_request.article.journal.name }} Review"><i
+                    class="fa fa-envelope"></i></a></td>
+                <td>{{ editor.email }}</td>
+                <td>{{ editor.affiliation }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+{% endif %}
+</div>
+
+<div class="title-area">
+    <h2>Authors</h2>
+</div>
+<div class="content">
+    <table class="hover stack scroll">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Affiliation</th>
+        </tr>
+        {% for order in review_request.article.articleauthororder_set.all %}
+            <tr>
+                <td>{{ order.author.full_name }}</td>
+                <td>{{ order.author.email }}</td>
+                <td>{{ order.author.affiliation }}</td>
+            </tr>
+        {% endfor %}
+    </table>
+</div>
+
+{% if journal_settings.general.enable_study_topics %}
+<div class="title-area">
+    <h2>Study Topics</h2>
+</div>
+<div class="content">
+    <table class="hover scroll">
+        {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=review_request.article.topics_by_type %}
+    </table>
+</div>
+{% endif %}
