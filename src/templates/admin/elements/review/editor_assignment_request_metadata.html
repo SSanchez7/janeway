@@ -43,7 +43,7 @@
             <p>{{ assignment_request.article.get_language_display }}</p>
             
             {% if journal_settings.general.enable_study_topics %}
-            <p><strong>Study Topics</strong></p>
+            <p><strong>Research Topics</strong></p>
             {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=assignment_request.article.topics_by_type %}
             {% endif %}
         </div>
