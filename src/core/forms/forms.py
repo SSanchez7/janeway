@@ -234,14 +234,14 @@ class EditAccountForm(forms.ModelForm):
         queryset=models.Topics.objects.none(),
         widget=Select2MultipleWidget,
         required=False,
-        label=_('Preferred Study Topics')
+        label=_('Primary Research Topics')
     )
     
     secondary_study_topic = forms.ModelMultipleChoiceField(
         queryset=models.Topics.objects.none(),
         widget=Select2MultipleWidget,
         required=False,
-        label=_('Another Study Topics')
+        label=_('Secondary Research Topics')
     )
 
     class Meta:
