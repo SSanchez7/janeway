@@ -248,7 +248,7 @@ class Account(AbstractBaseUser, PermissionsMixin):
         verbose_name=_('Name suffix'),
     )
     biography = JanewayBleachField(null=True, blank=True, verbose_name=_('Biography'))
-    orcid = models.CharField(max_length=40, null=True, blank=True, verbose_name=_('ORCiD'))
+    orcid = models.CharField(max_length=40, null=True, blank=True, verbose_name=_('ORCiD'), help_text='The 16-digit number at the end of the ORCiD URL e.g. 0000-0000-0000-0000')
     institution = models.CharField(max_length=1000, null=True, blank=True, verbose_name=_('Institution'))
     department = models.CharField(max_length=300, null=True, blank=True, verbose_name=_('Department'))
     twitter = models.CharField(max_length=300, null=True, blank=True, verbose_name=_('Twitter Handle'))
