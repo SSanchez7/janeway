@@ -70,7 +70,7 @@
                         <th colspan="4">Comments to Editor</th>
                     </tr>
                     <tr>
-                        <td colspan="4">{% if article.comments_editor %}{{ article.comments_editor|linebreaksbr }}{% else %}No
+                        <td colspan="4">{% if article.comments_editor %}{{ article.comments_editor|safe }}{% else %}No
                             comments{% endif %}</td>
                     </tr>
                     {% if request.journal.submissionconfiguration.competing_interests %}

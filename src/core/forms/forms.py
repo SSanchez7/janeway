@@ -165,9 +165,9 @@ class RegistrationForm(forms.ModelForm, CaptchaForm):
         )
         if enable_competing_interest_selections:
             self.fields['competing_interest_domains'] = forms.CharField(
-                label='Domains with Conflict of Interest',
+                label='Institutional Domains with Conflict of Interest',
                 required=False,
-                help_text=_('Hit Enter to add a new Domain. e.g., example.com.'),
+                help_text=_('Hit Enter to add a new domain of an institution with which you have a conflict of interest, e.g., example.com.'),
                 widget=forms.TextInput(attrs={
                     'id': 'id_domains',
                     'hidden': True,
@@ -273,9 +273,9 @@ class EditAccountForm(forms.ModelForm):
             )
             if enable_competing_interest_selections:
                 self.fields['competing_interest_domains'] = forms.CharField(
-                    label='Domains with Conflict of Interest',
+                    label='Institutional Domains with Conflict of Interest',
                     required=False,
-                    help_text=_('Hit Enter to add a new Domain. e.g., example.com.'),
+                    help_text=_('Hit Enter to add a new domain of an institution with which you have a conflict of interest, e.g., example.com.'),
                     widget=forms.TextInput(attrs={
                         'id': 'id_domains',
                         'hidden': True,

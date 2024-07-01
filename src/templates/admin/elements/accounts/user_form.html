@@ -54,6 +54,11 @@
             </div>
         </div>
     </div>
+    <div class="large-12 columns">
+        <label for="id_interests">{% trans 'Review Keywords' %}</label>
+        <input type="text" id="id_interests" name="interests" value="{% for interest in user_to_edit.interest.all %}{{ interest }}{% if not forloop.last %},{% endif %}{% endfor %}"/>
+        <p class="help-text">{% trans 'Hit Enter to add a new interest' %}.</p>
+    </div>
     {% if journal_settings.general.enable_competing_interest_selections %}
     <div class="large-12 columns">
         {{ form.competing_interest_domains|foundation }}
@@ -92,10 +97,6 @@
     </div>
     <div class="large-6 columns">
         {{ form.signature|foundation }}
-    </div>
-    <div class="large-12 columns">
-        <label for="id_interests">{% trans 'Review Interests' %}</label>
-        <input type="text" id="id_interests" name="interests" value="{% for interest in user_to_edit.interest.all %}{{ interest }}{% if not forloop.last %},{% endif %}{% endfor %}"/> {% trans "Hit Enter to add a new interest" %}.
     </div>
 </div>
 

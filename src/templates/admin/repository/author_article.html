@@ -70,7 +70,7 @@
                             <th colspan="2">Comments to the Editor</th>
                         </tr>
                         <tr>
-                            <td colspan="2"><small>{{ preprint.comments_editor }}</small></td>
+                            <td colspan="2"><small>{{ preprint.comments_editor|safe }}</small></td>
                         </tr>
                         {% for field_answer in preprint.additional_field_answers %}
                         <tr>
