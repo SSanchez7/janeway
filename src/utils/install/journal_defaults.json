@@ -2263,6 +2263,25 @@
             "name": "general"
         },
         "setting": {
+            "description": "If enabled, allow choosing visibility for anonymity drop down field when creating a review assignment.",
+            "is_translatable": false,
+            "name": "select_review_visibility",
+            "pretty_name": "Select Review Visibility",
+            "type": "boolean"
+        },
+        "value": {
+            "default": "on"
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
             "description": "The default number of days before an editor assignment is due.",
             "is_translatable": false,
             "name": "default_editor_assignment_request_days",
