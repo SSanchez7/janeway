@@ -90,11 +90,12 @@
                         </tbody>
                     </table>
 
-                    {% if journal_settings.general.default_review_visibility == 'double-blind' or journal_settings.general.default_review_visibility == 'blind' %}
+                    {% if journal_settings.general.default_review_visibility == 'double-blind' %}
+                    {{journal_settings.general.default_review_visibility}}
                     {{ journal_settings.general.review_file_help|safe }}
 
                     <input type="checkbox" id="anon" required>
-                    <label for="anon">Review files have been anonymised or this paper is not being reviewed in single anonymous or double-anonymous peer review.</label>
+                    <label for="anon">Review files have been anonymised or this paper is not being reviewed in single anonymous.</label>
                     <br />
                     {% endif %}
 
