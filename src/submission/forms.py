@@ -203,18 +203,18 @@ class ArticleInfo(KeywordModelForm, JanewayTranslationModelForm):
                     queryset=topics_queryset,
                     widget=forms.Select,
                     required=True,
-                    label=_('Primary Study Topic'),
+                    label=_('Primary Research Topic'),
                     initial=article.topics('PR').first(),
-                    help_text='Main study topic of the article',
+                    help_text='Main research topic of the article',
                 )
     
                 self.fields['secondary_study_topic'] = forms.ModelMultipleChoiceField(
                     queryset=topics_queryset,
                     widget=Select2MultipleWidget,
                     required=False,
-                    label=_('Secondary Study Topic'),
+                    label=_('Secondary Research Topic'),
                     initial=article.topics('SE'),
-                    help_text='Anothers study topics related to the article',
+                    help_text='Anothers research topics related to the article',
                 )
 
                 study_topic_choices = [('', '---------')] + [
