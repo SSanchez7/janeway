@@ -79,7 +79,7 @@
                         <th colspan="4">Comments to Editor</th>
                     </tr>
                     <tr>
-                        <td colspan="4">{% if preprint.comments_editor %}{{ preprint.comments_editor }}{% else %}No
+                        <td colspan="4">{% if preprint.comments_editor %}{{ preprint.comments_editor|safe }}{% else %}No
                             comments{% endif %}</td>
                     </tr>
                     {% for field_answer in preprint.additional_field_answers %}

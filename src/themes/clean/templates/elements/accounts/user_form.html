@@ -42,6 +42,13 @@
         {% bootstrap_field form.secondary_study_topic %}
     </div>
 </div>
+<div class="row">
+    <div class="col-md-12">
+        <label for="id_interests">{% trans 'Review Keywords' %}</label>
+        <input type="text" id="id_interests" name="interests" value="{% for interest in user_to_edit.interest.all %}{{ interest }}{% if not forloop.last %},{% endif %}{% endfor %}"/>
+        <p class="help-text">{% trans 'Hit Enter to add a new interest' %}.</p>
+    </div>
+</div>
 {% if journal_settings.general.enable_competing_interest_selections %}
 <div class="row">
     <div class="col-md-12">
@@ -81,10 +88,6 @@
     </div>
     <div class="col-md-6">
         {% bootstrap_field form.signature %}
-    </div>
-    <div class="col-md-12">
-        <label for="id_interests">{% trans 'Review Interests' %}</label>
-        <input type="text" id="id_interests" name="interests" value="{% for interest in user_to_edit.interest.all %}{{ interest }}{% if not forloop.last %},{% endif %}{% endfor %}"/> {% trans 'Hit Enter to add a new interest' %}.
     </div>
 </div>
 
