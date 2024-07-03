@@ -7,44 +7,85 @@
             <h4>Editor Assignment Request for: {{ assignment_request.article.safe_title }}</h4>
         </div>
         <div class="card-section">
-
-            <p><strong>Handling Editor(s):</strong></p>
-
-            <ul>
-                {% if assignment_request.article.editors %}
+            <div class="content">
+                <table class="hover scroll">
+                    <tr>
+                        <th>Article Title</th>
+                    </tr>
+                    <tr>
+                        <td colspan="4">{{ assignment_request.article.title }}</td>
+                    </tr>
+                    <tr>
+                        <th>Section</th>
+                        <th>Language</th>
+                        <th>Date Due</th>
+                    </tr>
+                    <tr>
+                        <td>{{ assignment_request.article.section.name }}</td>
+                        <td>{{ assignment_request.article.get_language_display }}</td>
+                        <td>{{ assignment_request.date_due|date:"Y-m-d" }}</td>
+                    </tr>
+                    <tr>
+                        <th colspan="4">Abstract</th>
+                    </tr>
+                    <tr>
+                        <td colspan="4">{{ assignment_request.article.abstract|safe }}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <div class="title-area">
+                <h2>Handling Editors</h2>
+            </div>
+            <div class="content">
+            {% if assignment_request.article.senior_editors %}
+                <table class="hover stack scroll">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Affiliation</th>
+                    </tr>
                     {% for editor in assignment_request.article.senior_editors %}
-                        <li>{{ editor.editor.full_name }} <a href="mailto:{{ editor.editor.email }}?subject={{ assignment_request.article.journal.name }} Editor Assignment"><i
-                                class="fa fa-envelope"></i></a></li>
-                    {% empty %}
-                        <li>This article has no editors.</li>
+                        <tr>
+                            <td>{{ editor.editor }}&nbsp;&nbsp;<a href="mailto:{{ editor.editor.email }}?subject={{ assignment_request.article.journal.name }} Editor Assignment"><i
+                                class="fa fa-envelope"></i></a></td>
+                            <td>{{ editor.editor.email }}</td>
+                            <td>{{ editor.editor.affiliation }}</td>
+                        </tr>
                     {% endfor %}
-                {% endif %}
-            </ul>
-
-            <p><strong>Due Date</strong></p>
-            <p>{{ assignment_request.date_due|date:"Y-m-d" }}</p>
-
-            <p><strong>Abstract</strong></p>
-            {{ assignment_request.article.abstract|safe }}
-            <br />
-            <p><strong>Keywords</strong></p>
-            {{ article.keywords.all }}
-            <p>
-                {% for keyword in assignment_request.article.keywords.all %}
-                    {{ keyword.word }}{% if not forloop.last %}, {% endif %}
-                    {% empty %}
-                    Article has no keywords.
-                {% endfor %}
-            </p>
-            <p><strong>Section</strong></p>
-            <p>{{ assignment_request.article.section.name }}</p>
-
-            <p><strong>Language</strong></p>
-            <p>{{ assignment_request.article.get_language_display }}</p>
+                </table>
+            {% endif %}
+            </div>
+            
+            <div class="title-area">
+                <h2>Authors</h2>
+            </div>
+            <div class="content">
+                <table class="hover stack scroll">
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Affiliation</th>
+                    </tr>
+                    {% for order in assignment_request.article.articleauthororder_set.all %}
+                        <tr>
+                            <td>{{ order.author.full_name }}</td>
+                            <td>{{ order.author.email }}</td>
+                            <td>{{ order.author.affiliation }}</td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
             
             {% if journal_settings.general.enable_study_topics %}
-            <p><strong>Research Topics</strong></p>
-            {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=assignment_request.article.topics_by_type %}
+            <div class="title-area">
+                <h2>Research Topics</h2>
+            </div>
+            <div class="content">
+                <table class="hover scroll">
+                    {% include "admin/elements/review/assigned_topics_table.html" with topics_by_type=assignment_request.article.topics_by_type %}
+                </table>
+            </div>
             {% endif %}
         </div>
     </div>
@@ -52,3 +93,6 @@
         <span aria-hidden="true">&times;</span>
     </button>
 </div>
+
+
+
