@@ -375,7 +375,7 @@ def get_settings_to_edit(display_group, journal, user):
                 'name': 'enable_invite_editor',
                 'object': setting_handler.get_setting('general', 'enable_invite_editor', journal),
             },
-             {
+            {
                 'name': 'enable_study_topics',
                 'object': setting_handler.get_setting('general', 'enable_study_topics', journal),
             },
@@ -447,6 +447,10 @@ def get_settings_to_edit(display_group, journal, user):
             {
                 'name': 'enable_competing_interest_selections',
                 'object': setting_handler.get_setting('general', 'enable_competing_interest_selections', journal),
+            },
+            {
+                'name': 'enable_skip_send_email',
+                'object': setting_handler.get_setting('general', 'enable_skip_send_email', journal),
             },
         ]
         setting_group = 'general'
