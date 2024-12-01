@@ -5132,5 +5132,24 @@
         "value": {
             "default": ""
         }
+    },
+    {
+        "group": {
+            "name": "general"
+        },
+        "setting": {
+            "description": "If enabled, Articles must be assigned at least one Senior Editor to review.",
+            "is_translatable": false,
+            "name": "required_senior_editor",
+            "pretty_name": "Required Senior Editor",
+            "type": "boolean"
+        },
+        "value": {
+            "default": ""
+        },
+        "editable_by": [
+            "editor",
+            "journal-manager"
+        ]
     }
 ]
