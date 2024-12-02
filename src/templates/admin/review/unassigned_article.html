@@ -13,6 +13,7 @@
 
 {% block body %}
     {% user_has_role request 'editor' as is_editor %}
+    {% user_has_role request 'section-editor' as is_section_editor %}
     {% can_see_pii_tag article as can_see_pii %}
     <div class="large-7 columns">
         <div class="box">
@@ -300,10 +301,12 @@
                             <li>
                                 <a href="{% url 'review_move_to_review' article.pk %}?return={% url 'review_in_review' article.pk %}"><i
                                         class="fa fa-check action-icon">&nbsp;</i>Move to Review</a></li>
+                            {% if not journal_settings.general.draft_decisions or is_editor %}
                             <li><a href="{% url 'review_decision' article.id 'accept' %}"><i
                                     class="fa fa-check-circle action-icon">&nbsp;</i>Accept Article</a></li>
                             <li><a href="{% url 'review_decision' article.id 'decline' %}"><i
                                     class="fa fa-minus-circle action-icon">&nbsp;</i>Decline Article</a></li>
+                            {% endif %}
                         </ul>
                     {% else %}
                         <div class="bs-callout bs-callout-info">
