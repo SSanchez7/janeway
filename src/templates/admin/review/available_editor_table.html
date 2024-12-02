@@ -1,0 +1,31 @@
+<div class="box">
+    <div class="title-area">
+        <h2>{{ title }}</h2>
+    </div>
+    <div class="content">
+        <table class="scroll small" id="{{ slug }}">
+            <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Type</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for account_role in editors %}
+                <tr>
+                    <td>{{ account_role.user.full_name }}</td>
+                    <td>{{ account_role.user.email }}</td>
+                    <td>{{ account_role.role|default:"Editor" }}</td>
+                    <td>
+                        <a href="{% url 'review_assign_editor' article.pk account_role.user.id slug %}?return={% url 'review_unassigned_article' article.pk %}">
+                            Add
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>

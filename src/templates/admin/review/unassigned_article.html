@@ -14,6 +14,7 @@
 {% block body %}
     {% user_has_role request 'editor' as is_editor %}
     {% can_see_pii_tag article as can_see_pii %}
+    {% editor_can_access request article as editor_can_access %}
     <div class="large-7 columns">
         <div class="box">
             <div class="title-area">
@@ -217,15 +218,18 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Type</th>
-                        <th></th>
+                        {% if editor_can_access %}
+                            <th></th>
+                        {% endif %}
                     </tr>
                     {% for assignment in article.editors %}
                         <tr>
                             <td>{{ assignment.editor.full_name }}</td>
                             <td>{{ assignment.editor.email }}</td>
                             <td>{{ assignment.editor_type|capfirst }}</td>
-                            <td><a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Remove</a>
-                            </td>
+                            {% if editor_can_access %}
+                                <td><a href="{% url 'review_unassign_editor' article.id assignment.editor.id %}">Remove</a></td>
+                            {% endif %}
                         </tr>
                         {% empty %}
                         <tr>
@@ -236,6 +240,12 @@
             </div>
         </div>
 
+        {% if journal_settings.general.required_senior_editor %}
+            {% include "review/available_editor_table.html" with editors=editors title="Add Senior Editors" slug="editor" %}
+            {% if editor_can_access %}
+                {% include "review/available_editor_table.html" with editors=section_editors title="Add Section Editors" slug="section-editor" %}
+            {% endif %}
+        {% else %}
         <div class="box">
             <div class="title-area">
                 <h2>Add Editors</h2>
@@ -284,6 +294,7 @@
             </div>
         </div>
         {% endif %}
+        {% endif %}
         <div class="box">
             <div class="title-area">
                 <h2>Actions</h2>
@@ -295,7 +306,7 @@
                             {% trans 'This paper has not had an automatic plagiarism check. If you wish to do so you can run a' %} <a href="{% url 'review_unassigned_article' article.pk %}#files-block">{% trans 'Similarity Check via iThenticate' %}</a> .</small></p>
                         </div>
                     {% endif %}
-                    {% if article.editors %}
+                    {% if editor_can_access and article.editors %}
                         <ul class="menu vertical actions">
                             <li>
                                 <a href="{% url 'review_move_to_review' article.pk %}?return={% url 'review_in_review' article.pk %}"><i
@@ -305,6 +316,10 @@
                             <li><a href="{% url 'review_decision' article.id 'decline' %}"><i
                                     class="fa fa-minus-circle action-icon">&nbsp;</i>Decline Article</a></li>
                         </ul>
+                    {% elif journal_settings.general.required_senior_editor and not editor_can_access %}
+                        <div class="bs-callout bs-callout-info">
+                            <small>Before you can perform actions on an article you must be assigned as a Senior Editor.</small>
+                        </div>
                     {% else %}
                         <div class="bs-callout bs-callout-info">
                             <small>Before you can perform actions on an article you must assign an Editor.</small>
@@ -323,5 +338,6 @@
 {% endblock body %}
 
 {% block js %}
-    {% include "admin/elements/datatables.html" with target="#editors" page_length=5 %}
+    {% include "admin/elements/datatables.html" with target="#editor" page_length=5 %}
+    {% include "admin/elements/datatables.html" with target="#section-editor" page_length=5 %}
 {% endblock js %}
