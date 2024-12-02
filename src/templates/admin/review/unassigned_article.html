@@ -13,7 +13,6 @@
 
 {% block body %}
     {% user_has_role request 'editor' as is_editor %}
-    {% user_has_role request 'section-editor' as is_section_editor %}
     {% can_see_pii_tag article as can_see_pii %}
     <div class="large-7 columns">
         <div class="box">
